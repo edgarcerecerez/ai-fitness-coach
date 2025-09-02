@@ -10,8 +10,15 @@ jest.mock('../offline-storage', () => ({
   }
 }));
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock fetch with spy to restore after tests
+let fetchSpy: jest.SpyInstance;
+beforeEach(() => {
+  fetchSpy = jest.spyOn(global, 'fetch' as any).mockImplementation(() => Promise.resolve({ ok: true }) as any);
+});
+
+afterEach(() => {
+  if (fetchSpy) fetchSpy.mockRestore();
+});
 
 describe('SyncService', () => {
   beforeEach(() => {

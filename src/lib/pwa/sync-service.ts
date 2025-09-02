@@ -3,18 +3,18 @@ import { createClient } from '@/utils/supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface SyncResult {
-  success: number;
-  failed: number;
-  errors: Array<{ id: string; error: string }>;
+  readonly success: number;
+  readonly failed: number;
+  readonly errors: ReadonlyArray<{ readonly id: string; readonly error: string }>;
 }
 
 interface SyncEntry {
-  id: string;
-  type: 'meal_log' | 'photo_upload' | 'user_action';
-  data: unknown;
-  timestamp: number;
-  synced: boolean;
-  retryCount: number;
+  readonly id: string;
+  readonly type: 'meal_log' | 'photo_upload' | 'user_action';
+  readonly data: unknown;
+  readonly timestamp: number;
+  readonly synced: boolean;
+  readonly retryCount: number;
 }
 
 interface MealLogData {
@@ -37,7 +37,7 @@ interface PhotoUploadData {
 
 interface UserActionData {
   action: string;
-  payload: Record<string, unknown>;
+  payload: Readonly<Record<string, unknown>>;
   user_id: string;
 }
 
@@ -112,7 +112,7 @@ export class SyncService {
           result.success++;
         } catch (error) {
           result.failed++;
-          result.errors.push({
+          (result.errors as Array<{ id: string; error: string }>).push({
             id: entry.id,
             error: error instanceof Error ? error.message : 'Unknown error'
           });

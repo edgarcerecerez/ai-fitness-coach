@@ -3,16 +3,16 @@
 import { useCallback } from 'react';
 
 interface ToastOptions {
-  title: string;
-  description?: string;
-  variant?: 'default' | 'destructive';
-  duration?: number;
+  readonly title: string;
+  readonly description?: string;
+  readonly variant?: 'default' | 'destructive';
+  readonly duration?: number;
 }
 
 // Global toast function for non-React contexts
 let globalToastFn: ((options: ToastOptions) => void) | null = null;
 
-export function setGlobalToast(toastFn: (options: ToastOptions) => void) {
+export function setGlobalToast(toastFn: ((options: ToastOptions) => void) | null) {
   globalToastFn = toastFn;
 }
 

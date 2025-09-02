@@ -13,28 +13,28 @@ import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 interface FavoriteFood {
-  id: string;
-  name: string;
-  calories: number;
-  macros: {
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
+  readonly id: string;
+  readonly name: string;
+  readonly calories: number;
+  readonly macros: {
+    readonly protein: number;
+    readonly carbs: number;
+    readonly fat: number;
+    readonly fiber: number;
   };
-  imageUrl?: string;
-  frequency: number;
-  lastUsed: Date;
-  tags?: string[];
-  customServingSizes?: Array<{
-    name: string;
-    multiplier: number;
+  readonly imageUrl?: string;
+  readonly frequency: number;
+  readonly lastUsed: Date;
+  readonly tags?: ReadonlyArray<string>;
+  readonly customServingSizes?: ReadonlyArray<{
+    readonly name: string;
+    readonly multiplier: number;
   }>;
 }
 
 interface FavoriteFoodsProps {
-  onSelectFood?: (food: FavoriteFood, portion: number) => void;
-  isModal?: boolean;
+  readonly onSelectFood?: (food: FavoriteFood, portion: number) => void;
+  readonly isModal?: boolean;
 }
 
 export const FavoriteFoods: React.FC<FavoriteFoodsProps> = ({ 

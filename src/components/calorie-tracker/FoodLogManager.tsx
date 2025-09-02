@@ -19,21 +19,21 @@ import {
 } from 'lucide-react';
 
 interface FoodLog {
-  id: string;
-  food_items: Array<{
-    name: string;
-    quantity: string;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
+  readonly id: string;
+  readonly food_items: ReadonlyArray<{
+    readonly name: string;
+    readonly quantity: string;
+    readonly calories: number;
+    readonly protein_g: number;
+    readonly carbs_g: number;
+    readonly fat_g: number;
   }>;
-  total_calories: number;
-  confidence_score: number;
-  image_url: string;
-  notes: string;
-  created_at: string;
-  processing_status: string;
+  readonly total_calories: number;
+  readonly confidence_score: number;
+  readonly image_url: string;
+  readonly notes: string;
+  readonly created_at: string;
+  readonly processing_status: string;
 }
 
 export function FoodLogManager() {
@@ -83,15 +83,21 @@ export function FoodLogManager() {
     filterLogs();
   }, [logs, searchTerm, dateFilter]);
 
+  const getAuthenticatedUser = async () => {
+    const supabase = createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
+      return null;
+    }
+    return { supabase, user } as const;
+  };
+
   const fetchLogs = async () => {
     try {
-      const supabase = createClient();
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error('Error getting user:', userError);
-        return;
-      }
+      const auth = await getAuthenticatedUser();
+      if (!auth) return;
+      const { supabase, user } = auth;
 
       const { data, error } = await supabase
         .from('nutrition_logs')
@@ -102,8 +108,8 @@ export function FoodLogManager() {
 
       if (error) throw error;
       setLogs(data || []);
-    } catch (error) {
-      console.error('Error fetching logs:', error);
+    } catch (error: unknown) {
+      console.error('Error fetching logs:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
     } finally {
       setLoading(false);
     }
@@ -119,13 +125,9 @@ export function FoodLogManager() {
 
   const handleSaveEdit = async (logId: string) => {
     try {
-      const supabase = createClient();
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error('Error getting user:', userError);
-        return;
-      }
+      const auth = await getAuthenticatedUser();
+      if (!auth) return;
+      const { supabase, user } = auth;
       
       // Recalculate totals
       const totalCalories = editValues.food_items?.reduce((sum, item) => sum + item.calories, 0) || 0;
@@ -151,8 +153,8 @@ export function FoodLogManager() {
       setEditingLog(null);
       setEditValues({});
       fetchLogs();
-    } catch (error) {
-      console.error('Error updating log:', error);
+    } catch (error: unknown) {
+      console.error('Error updating log:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
     }
   };
 
@@ -169,25 +171,25 @@ export function FoodLogManager() {
     if (!logId) return;
 
     try {
-      const supabase = createClient();
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error('Error getting user:', userError);
-        return;
-      }
+      const auth = await getAuthenticatedUser();
+      if (!auth) return;
+      const { supabase, user } = auth;
 
       const { error } = await supabase
         .from('nutrition_logs')
         .delete()
         .eq('id', logId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .catch((err) => {
+          console.error('Error deleting log (request failed):', err);
+          throw err;
+        });
 
       if (error) throw error;
       fetchLogs();
       setDeleteConfirmation({ isOpen: false, logId: null, logName: '' });
-    } catch (error) {
-      console.error('Error deleting log:', error);
+    } catch (error: unknown) {
+      console.error('Error deleting log:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
       setDeleteConfirmation({ isOpen: false, logId: null, logName: '' });
     }
   };

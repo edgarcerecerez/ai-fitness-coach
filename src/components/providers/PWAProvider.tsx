@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { swManager } from '@/lib/pwa/service-worker';
 import { syncService } from '@/lib/pwa/sync-service';
 import { offlineStorage } from '@/lib/pwa/offline-storage';
 import { useToast } from '@/hooks/use-toast';
 
 interface PWAProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 // Type definition for beforeinstallprompt event
@@ -22,7 +22,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function PWAProvider({ children }: PWAProviderProps) {
   const { toast } = useToast();
-  const cleanupRef = useRef<(() => void)[]>([]);
+  const cleanupRef = useRef<Array<() => void>>([]);
 
   const showInstallPrompt = useCallback((prompt: BeforeInstallPromptEvent) => {
     toast({
@@ -35,8 +35,12 @@ export function PWAProvider({ children }: PWAProviderProps) {
         await prompt.prompt();
         const { outcome } = await prompt.userChoice;
         console.log(`Install prompt outcome: ${outcome}`);
-      } catch (error) {
-        console.error('Install prompt error:', error);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error('Install prompt error:', { message: error.message, stack: error.stack });
+        } else {
+          console.error('Install prompt error:', String(error));
+        }
       }
     }, 2000);
     cleanupRef.current.push(() => clearTimeout(timeoutId));
@@ -113,8 +117,12 @@ export function PWAProvider({ children }: PWAProviderProps) {
       window.addEventListener('appinstalled', installedHandler);
       cleanupRef.current.push(() => window.removeEventListener('appinstalled', installedHandler));
 
-    } catch (error) {
-      console.error('Failed to initialize PWA features:', error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Failed to initialize PWA features:', { message: error.message, stack: error.stack });
+      } else {
+        console.error('Failed to initialize PWA features:', String(error));
+      }
     }
   }, [toast, showInstallPrompt]);
 
@@ -124,7 +132,7 @@ export function PWAProvider({ children }: PWAProviderProps) {
 
     // Cleanup function
     return () => {
-      cleanupRef.current.forEach(cleanup => cleanup());
+      cleanupRef.current.forEach((cleanup: () => void) => cleanup());
       cleanupRef.current = [];
     };
   }, [initializePWA]);

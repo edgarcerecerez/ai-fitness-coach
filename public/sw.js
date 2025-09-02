@@ -146,8 +146,8 @@ self.addEventListener('fetch', (event) => {
 
           return response;
         }).catch(() => {
-          // Network failed - return stale cache if available
-          return response || caches.match('/offline.html');
+          // Network failed - return offline fallback page (or null if not cached)
+          return caches.match('/offline.html');
         });
       })
       .catch(() => {

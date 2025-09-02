@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { createClient } from '@/utils/supabase/client';
@@ -12,12 +12,12 @@ interface WeeklyTrendsProps {
 }
 
 interface DayData {
-  date: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  dayLabel: string;
+  readonly date: string;
+  readonly calories: number;
+  readonly protein: number;
+  readonly carbs: number;
+  readonly fat: number;
+  readonly dayLabel: string;
 }
 
 export function WeeklyTrendsChart({ userId }: WeeklyTrendsProps) {
@@ -25,11 +25,7 @@ export function WeeklyTrendsChart({ userId }: WeeklyTrendsProps) {
   const [loading, setLoading] = useState(true);
   const [activeMetric, setActiveMetric] = useState<'calories' | 'protein' | 'carbs' | 'fat'>('calories');
 
-  useEffect(() => {
-    fetchWeeklyData();
-  }, [userId]);
-
-  const fetchWeeklyData = async () => {
+  const fetchWeeklyData = useCallback(async () => {
     try {
       const supabase = createClient();
       const endDate = new Date();
@@ -63,12 +59,16 @@ export function WeeklyTrendsChart({ userId }: WeeklyTrendsProps) {
       }
 
       setWeekData(weekData);
-    } catch (error) {
-      console.error('Error fetching weekly data:', error);
+    } catch (error: unknown) {
+      console.error('Error fetching weekly data:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchWeeklyData();
+  }, [fetchWeeklyData]);
 
   const metricConfig = {
     calories: { color: '#f97316', label: 'Calories' },
@@ -91,17 +91,17 @@ export function WeeklyTrendsChart({ userId }: WeeklyTrendsProps) {
         <div className="space-y-4">
           {/* Metric Selector */}
           <div className="flex gap-2">
-            {Object.entries(metricConfig).map(([key, config]) => (
+            {(Object.keys(metricConfig) as Array<'calories' | 'protein' | 'carbs' | 'fat'>).map((key) => (
               <button
                 key={key}
-                onClick={() => setActiveMetric(key as any)}
+                onClick={() => setActiveMetric(key)}
                 className={`px-3 py-1 rounded-full text-sm transition-colors ${
                   activeMetric === key
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {config.label}
+                {metricConfig[key].label}
               </button>
             ))}
           </div>

@@ -1,20 +1,19 @@
 "use client"
 
-import * as React from "react"
-import { createContext, useContext, useReducer, useCallback, useEffect } from "react"
+import { createContext, useContext, useReducer, useCallback, useEffect, type ReactNode } from "react"
 import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast"
 import { setGlobalToast } from "@/hooks/use-toast"
 
 interface ToastData {
-  id: string
-  title: string
-  description?: string
-  variant?: 'default' | 'destructive'
-  duration?: number
+  readonly id: string
+  readonly title: string
+  readonly description?: string
+  readonly variant?: 'default' | 'destructive'
+  readonly duration?: number
 }
 
 interface ToastState {
-  toasts: ToastData[]
+  readonly toasts: readonly ToastData[]
 }
 
 type ToastAction = 
@@ -39,16 +38,27 @@ function toastReducer(state: ToastState, action: ToastAction): ToastState {
         ...state,
         toasts: state.toasts.filter(toast => toast.id !== action.id)
       }
-    default:
-      return state
+    default: {
+      return assertUnreachable(action)
+    }
   }
 }
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+function assertUnreachable(x: never): never {
+  throw new Error(`Unhandled action: ${JSON.stringify(x)}`)
+}
+
+export function ToastProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(toastReducer, { toasts: [] })
 
+  const scheduleToastRemoval = useCallback((toastId: string, duration: number) => {
+    return setTimeout(() => {
+      dispatch({ type: 'REMOVE_TOAST', id: toastId })
+    }, duration)
+  }, [])
+
   const addToast = useCallback((toast: Omit<ToastData, 'id'>) => {
-    const id = Math.random().toString(36).substr(2, 9)
+    const id = crypto && 'randomUUID' in crypto ? (crypto.randomUUID as () => string)() : Math.random().toString(36).slice(2)
     const duration = toast.duration ?? 5000 // Default 5 seconds
     
     dispatch({
@@ -58,11 +68,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     // Auto-remove toast after duration
     if (duration > 0) {
-      setTimeout(() => {
-        dispatch({ type: 'REMOVE_TOAST', id })
-      }, duration)
+      scheduleToastRemoval(id, duration)
     }
-  }, [])
+  }, [scheduleToastRemoval])
 
   const removeToast = useCallback((id: string) => {
     dispatch({ type: 'REMOVE_TOAST', id })
@@ -74,7 +82,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     
     // Cleanup on unmount
     return () => {
-      setGlobalToast(null as any)
+      setGlobalToast(null)
     }
   }, [addToast])
 
@@ -90,8 +98,8 @@ function ToastContainer({
   toasts, 
   onRemove 
 }: { 
-  toasts: ToastData[]
-  onRemove: (id: string) => void 
+  readonly toasts: readonly ToastData[]
+  readonly onRemove: (id: string) => void 
 }) {
   if (toasts.length === 0) return null
 

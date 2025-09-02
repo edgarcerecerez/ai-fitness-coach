@@ -15,51 +15,52 @@ import {
 } from 'lucide-react';
 
 interface AIAnalysisProps {
-  log: {
-    id: string;
-    confidence_score: number;
-    processing_status: string;
-    food_items: Array<{
-      name: string;
-      quantity: string;
-      calories: number;
-      protein_g: number;
-      carbs_g: number;
-      fat_g: number;
+  readonly log: {
+    readonly id: string;
+    readonly confidence_score: number;
+    readonly processing_status: string;
+    readonly food_items: ReadonlyArray<{
+      readonly name: string;
+      readonly quantity: string;
+      readonly calories: number;
+      readonly protein_g: number;
+      readonly carbs_g: number;
+      readonly fat_g: number;
     }>;
-    notes: string;
-    image_url: string;
-    error_message?: string;
+    readonly notes: string;
+    readonly image_url: string;
+    readonly error_message?: string;
   };
-  onReprocess?: (logId: string) => void;
-  onCorrect?: (logId: string) => void;
+  readonly onReprocess?: (logId: string) => void;
+  readonly onCorrect?: (logId: string) => void;
+}
+
+export function getConfidenceColor(score: number): string {
+  if (score >= 0.8) return 'bg-green-500';
+  if (score >= 0.6) return 'bg-yellow-500';
+  return 'bg-red-500';
+}
+
+export function getConfidenceText(score: number): string {
+  if (score >= 0.8) return 'High Confidence';
+  if (score >= 0.6) return 'Medium Confidence';
+  return 'Low Confidence';
+}
+
+export function getStatusIcon(status: string | 'completed' | 'processing' | 'failed') {
+  switch (status) {
+    case 'completed':
+      return <CheckCircle className="h-4 w-4 text-green-500" aria-label="Analysis completed successfully" />;
+    case 'processing':
+      return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" aria-label="Analysis in progress" />;
+    case 'failed':
+      return <AlertTriangle className="h-4 w-4 text-red-500" aria-label="Analysis failed" />;
+    default:
+      return <RefreshCw className="h-4 w-4 text-gray-500" aria-label="Analysis status unknown" />;
+  }
 }
 
 export function AIAnalysisDisplay({ log, onReprocess, onCorrect }: AIAnalysisProps) {
-  const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return 'bg-green-500';
-    if (score >= 0.6) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
-  const getConfidenceText = (score: number) => {
-    if (score >= 0.8) return 'High Confidence';
-    if (score >= 0.6) return 'Medium Confidence';
-    return 'Low Confidence';
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" aria-label="Analysis completed successfully" />;
-      case 'processing':
-        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" aria-label="Analysis in progress" />;
-      case 'failed':
-        return <AlertTriangle className="h-4 w-4 text-red-500" aria-label="Analysis failed" />;
-      default:
-        return <RefreshCw className="h-4 w-4 text-gray-500" aria-label="Analysis status unknown" />;
-    }
-  };
 
   return (
     <Card className="border-l-4 border-l-blue-500">

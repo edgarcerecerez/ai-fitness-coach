@@ -9,41 +9,39 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface Meal {
-  id: string;
-  food_items: Array<{
-    name: string;
-    quantity: string;
-    calories: number;
+  readonly id: string;
+  readonly food_items: ReadonlyArray<{
+    readonly name: string;
+    readonly quantity: string;
+    readonly calories: number;
   }>;
-  total_calories: number;
-  confidence_score: number;
-  image_url?: string;
-  created_at: string;
-  processing_status: string;
+  readonly total_calories: number;
+  readonly confidence_score: number;
+  readonly image_url?: string;
+  readonly created_at: string;
+  readonly processing_status: string;
 }
 
 interface RecentMealsProps {
-  meals: Meal[];
+  readonly meals: ReadonlyArray<Meal>;
+}
+
+function getConfidenceBadge(score: number) {
+  if (score >= 0.8) return <Badge className="bg-green-100 text-green-800">High</Badge>;
+  if (score >= 0.6) return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
+  return <Badge className="bg-red-100 text-red-800">Low</Badge>;
+}
+
+function viewMeal(router: ReturnType<typeof useRouter>, mealId: string) {
+  router.push(`/meal/${mealId}`);
+}
+
+function viewAllMeals(router: ReturnType<typeof useRouter>) {
+  router.push('/food-log');
 }
 
 export function RecentMeals({ meals }: RecentMealsProps) {
   const router = useRouter();
-
-  const getConfidenceBadge = (score: number) => {
-    if (score >= 0.8) return <Badge className="bg-green-100 text-green-800">High</Badge>;
-    if (score >= 0.6) return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-    return <Badge className="bg-red-100 text-red-800">Low</Badge>;
-  };
-
-  const handleViewMeal = (mealId: string) => {
-    // Navigate to detailed meal view page
-    router.push(`/meal/${mealId}`);
-  };
-
-  const handleViewAllMeals = () => {
-    // Navigate to all meals/food log page
-    router.push('/food-log');
-  };
 
   if (meals.length === 0) {
     return (
@@ -135,7 +133,7 @@ export function RecentMeals({ meals }: RecentMealsProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleViewMeal(meal.id)}
+                  onClick={() => viewMeal(router, meal.id)}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -148,7 +146,7 @@ export function RecentMeals({ meals }: RecentMealsProps) {
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={handleViewAllMeals}
+              onClick={() => viewAllMeals(router)}
             >
               View All Meals
             </Button>

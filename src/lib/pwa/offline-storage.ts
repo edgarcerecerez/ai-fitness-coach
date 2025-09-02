@@ -2,39 +2,39 @@
 interface MealLogData {
   food_name?: string;
   meal_name?: string;
-  food_items?: Array<{
-    name: string;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g: number;
-    quantity: number;
-    unit: string;
+  food_items?: ReadonlyArray<{
+    readonly name: string;
+    readonly calories: number;
+    readonly protein_g: number;
+    readonly carbs_g: number;
+    readonly fat_g: number;
+    readonly fiber_g: number;
+    readonly quantity: number;
+    readonly unit: string;
   }>;
-  total_calories?: number;
-  total_protein_g?: number;
-  total_carbs_g?: number;
-  total_fat_g?: number;
-  total_fiber_g?: number;
-  confidence_score: number;
-  notes?: string;
-  meal_date: string;
-  meal_type: string;
-  user_id: string;
+  readonly total_calories?: number;
+  readonly total_protein_g?: number;
+  readonly total_carbs_g?: number;
+  readonly total_fat_g?: number;
+  readonly total_fiber_g?: number;
+  readonly confidence_score: number;
+  readonly notes?: string;
+  readonly meal_date: string;
+  readonly meal_type: string;
+  readonly user_id: string;
 }
 
 interface PhotoUploadData {
-  fileName: string;
-  base64?: string;
-  mimeType: string;
-  user_id: string;
+  readonly fileName: string;
+  readonly base64?: string;
+  readonly mimeType: string;
+  readonly user_id: string;
 }
 
 interface UserActionData {
-  action: string;
-  payload: Record<string, unknown>;
-  user_id: string;
+  readonly action: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly user_id: string;
 }
 
 // Union type for all possible data types
@@ -42,54 +42,54 @@ type OfflineEntryData = MealLogData | PhotoUploadData | UserActionData;
 
 // Interfaces for cached meals and favorite foods
 interface CachedMeal {
-  id: string;
-  food_items: Array<{
-    name: string;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g: number;
-    quantity: number;
-    unit: string;
+  readonly id: string;
+  readonly food_items: ReadonlyArray<{
+    readonly name: string;
+    readonly calories: number;
+    readonly protein_g: number;
+    readonly carbs_g: number;
+    readonly fat_g: number;
+    readonly fiber_g: number;
+    readonly quantity: number;
+    readonly unit: string;
   }>;
-  total_calories: number;
-  total_protein_g: number;
-  total_carbs_g: number;
-  total_fat_g: number;
-  total_fiber_g: number;
-  confidence_score: number;
-  notes?: string;
-  meal_date: string;
-  meal_type: string;
-  user_id: string;
-  created_at: string;
-  image_url?: string;
+  readonly total_calories: number;
+  readonly total_protein_g: number;
+  readonly total_carbs_g: number;
+  readonly total_fat_g: number;
+  readonly total_fiber_g: number;
+  readonly confidence_score: number;
+  readonly notes?: string;
+  readonly meal_date: string;
+  readonly meal_type: string;
+  readonly user_id: string;
+  readonly created_at: string;
+  readonly image_url?: string;
 }
 
 interface FavoriteFood {
-  id: string;
-  name: string;
-  calories: number;
-  macros: {
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
+  readonly id: string;
+  readonly name: string;
+  readonly calories: number;
+  readonly macros: {
+    readonly protein: number;
+    readonly carbs: number;
+    readonly fat: number;
+    readonly fiber: number;
   };
-  imageUrl?: string;
-  frequency: number;
-  lastUsed: Date;
-  tags?: string[];
+  readonly imageUrl?: string;
+  readonly frequency: number;
+  readonly lastUsed: Date;
+  readonly tags?: ReadonlyArray<string>;
 }
 
 interface OfflineEntry {
-  id: string;
-  type: 'meal_log' | 'photo_upload' | 'user_action';
-  data: OfflineEntryData;
-  timestamp: number;
-  synced: boolean;
-  retryCount: number;
+  readonly id: string;
+  readonly type: 'meal_log' | 'photo_upload' | 'user_action';
+  readonly data: OfflineEntryData;
+  readonly timestamp: number;
+  readonly synced: boolean;
+  readonly retryCount: number;
 }
 
 export class OfflineStorage {

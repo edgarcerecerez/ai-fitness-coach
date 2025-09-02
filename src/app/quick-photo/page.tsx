@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { OptimizedCamera } from '@/components/calorie-tracker/OptimizedCamera';
@@ -16,30 +16,30 @@ export default function QuickPhotoPage() {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user) {
-          toast({
-            title: "Authentication required",
-            description: "Please log in to upload photos",
-          });
-          router.push('/login');
-          return;
-        }
-        setUser(user);
-      } catch (error) {
-        console.error('Auth check failed:', error);
+  const checkAuth = useCallback(async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to upload photos",
+        });
         router.push('/login');
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
-    
-    checkAuth();
+      setUser(user);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Auth check failed:', message);
+      router.push('/login');
+    } finally {
+      setIsLoading(false);
+    }
   }, [router, supabase.auth, toast]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -53,61 +53,46 @@ export default function QuickPhotoPage() {
     try {
       // Optimize the image
       const optimizedPhoto = await imageOptimizer.optimizeForUpload(photo);
-      
+
       toast({
         title: "Processing photo...",
         description: "AI is analyzing your meal"
       });
 
-      // Queue for processing
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          if (syncService) {
-            const signedUrl = await syncService.queuePhotoUpload({
-              fileName: optimizedPhoto.name,
-              base64: reader.result?.toString().split(',')[1],
-              mimeType: optimizedPhoto.type,
-              user_id: user.id // Use actual authenticated user ID
-            });
-
-            if (signedUrl) {
-              console.log('Photo uploaded with signed URL:', signedUrl);
-              toast({
-                title: "Photo uploaded!",
-                description: "Photo uploaded successfully and ready for processing"
-              });
-            } else {
-              toast({
-                title: "Photo queued",
-                description: "Photo saved and will be uploaded when online"
-              });
-            }
-          } else {
-            throw new Error('Sync service not available');
-          }
-        } catch (error) {
-          console.error('Failed to queue photo upload:', error);
-          toast({
-            title: "Upload failed",
-            description: "Failed to queue photo for processing. Please try again.",
-          });
-        }
-      };
-      reader.readAsDataURL(optimizedPhoto);
-
-      // Navigate to dashboard
-      router.push('/');
-      
-      toast({
-        title: "Photo uploaded!",
-        description: "Your meal is being analyzed"
+      // Read as base64 in a promise to await
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result?.toString().split(',')[1] ?? '');
+        reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
+        reader.readAsDataURL(optimizedPhoto);
       });
-    } catch {
+
+      if (!syncService) {
+        throw new Error('Sync service not available');
+      }
+
+      const signedUrl = await syncService.queuePhotoUpload({
+        fileName: optimizedPhoto.name,
+        base64,
+        mimeType: optimizedPhoto.type,
+        user_id: user.id
+      });
+
+      if (signedUrl) {
+        toast({ title: 'Photo uploaded!', description: 'Photo uploaded successfully and ready for processing' });
+      } else {
+        toast({ title: 'Photo queued', description: 'Photo saved and will be uploaded when online' });
+      }
+
+      // Navigate only after successful queue/upload
+      router.push('/');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Failed to process or queue photo:', message);
       toast({
-        title: "Error",
-        description: "Failed to process photo",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to process photo',
+        variant: 'destructive'
       });
     }
   };

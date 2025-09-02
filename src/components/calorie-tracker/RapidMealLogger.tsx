@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Camera, Mic, Heart, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -98,6 +98,11 @@ export const RapidMealLogger: React.FC = () => {
     { id: 'favorites', label: 'Favorites', icon: Heart },
   ];
 
+  const handleQuickPhoto = useCallback(async () => {
+    setMode('photo');
+    setShowCamera(true);
+  }, []);
+
   useEffect(() => {
     // Register keyboard shortcuts
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -121,12 +126,7 @@ export const RapidMealLogger: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleQuickPhoto = async () => {
-    setMode('photo');
-    setShowCamera(true);
-  };
+  }, [handleQuickPhoto, handleVoiceEntry, openFavorites]);
 
   const handlePhotoCapture = async (photo: File) => {
     setShowCamera(false);
@@ -192,7 +192,7 @@ export const RapidMealLogger: React.FC = () => {
     setMode(null);
   };
 
-  const handleVoiceEntry = async () => {
+  const handleVoiceEntry = useCallback(async () => {
     // Check authentication
     if (!user) {
       toast({
@@ -250,8 +250,12 @@ export const RapidMealLogger: React.FC = () => {
         });
       };
 
-      recognition.onerror = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error('Speech recognition error:', event.error);
+      recognition.onerror = (event: unknown) => {
+        let errorMsg = 'Unknown';
+        if (typeof event === 'object' && event !== null && 'error' in event) {
+          errorMsg = String((event as { error: unknown }).error);
+        }
+        console.error('Speech recognition error:', errorMsg);
         toast({
           title: "Error",
           description: "Voice recording failed",
@@ -274,9 +278,9 @@ export const RapidMealLogger: React.FC = () => {
       setIsRecording(false);
       setMode(null);
     }
-  };
+  }, [toast, user]);
 
-  const openFavorites = async () => {
+  const openFavorites = useCallback(async () => {
     setMode('favorites');
     
     try {
@@ -303,7 +307,7 @@ export const RapidMealLogger: React.FC = () => {
     }
     
     setMode(null);
-  };
+  }, [toast]);
 
   const getMealType = (): string => {
     const hour = new Date().getHours();

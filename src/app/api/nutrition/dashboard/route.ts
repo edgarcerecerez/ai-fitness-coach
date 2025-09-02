@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
     }
     
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser().catch((err) => {
+      console.error('Supabase auth.getUser error', err);
+      throw err;
+    });
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -38,7 +41,11 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .gte('date', format(startDate, 'yyyy-MM-dd'))
       .lte('date', format(endDate, 'yyyy-MM-dd'))
-      .order('date', { ascending: true });
+      .order('date', { ascending: true })
+      .catch((err) => {
+        console.error('Supabase dailySummaries query error', err);
+        throw err;
+      });
 
     if (summariesError) throw summariesError;
 
@@ -47,7 +54,11 @@ export async function GET(request: NextRequest) {
       .from('user_nutrition_goals')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .single()
+      .catch((err) => {
+        console.error('Supabase userGoals query error', err);
+        throw err;
+      });
 
     if (goalsError && goalsError.code !== 'PGRST116') throw goalsError;
 
@@ -58,7 +69,11 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('processing_status', 'completed')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(10)
+      .catch((err) => {
+        console.error('Supabase recentMeals query error', err);
+        throw err;
+      });
 
     if (mealsError) throw mealsError;
 
@@ -79,8 +94,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-  } catch (error) {
-    console.error('Dashboard API error:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Dashboard API error:', { message: error.message, stack: error.stack });
+    } else {
+      console.error('Dashboard API error:', String(error));
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

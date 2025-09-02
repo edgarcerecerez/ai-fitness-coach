@@ -475,12 +475,7 @@ describe('ImageOptimizer', () => {
       mockCanvas.getContext.mockReturnValue(null);
       const mockFile = new File(['mock-data'], 'image.jpg', { type: 'image/jpeg' });
       
-      try {
-        await optimizer.optimizeForUpload(mockFile);
-      } catch (error) {
-        // Expected error
-      }
-      
+      await expect(optimizer.optimizeForUpload(mockFile)).rejects.toThrow();
       expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('mock-object-url');
     });
   });

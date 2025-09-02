@@ -5,30 +5,25 @@ import { Progress } from '@/components/ui/progress';
 import { Flame, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface DailySummaryProps {
-  summary: {
-    total_calories: number;
-    total_protein_g: number;
-    total_carbs_g: number;
-    total_fat_g: number;
-    total_fiber_g: number;
-    meal_count: number;
+  readonly summary: {
+    readonly total_calories: number;
+    readonly total_protein_g: number;
+    readonly total_carbs_g: number;
+    readonly total_fat_g: number;
+    readonly total_fiber_g: number;
+    readonly meal_count: number;
   } | null;
-  goals: {
-    daily_calorie_goal: number;
-    daily_protein_goal_g: number;
-    daily_carbs_goal_g: number;
-    daily_fat_goal_g: number;
-    daily_fiber_goal_g: number;
+  readonly goals: {
+    readonly daily_calorie_goal: number;
+    readonly daily_protein_goal_g: number;
+    readonly daily_carbs_goal_g: number;
+    readonly daily_fat_goal_g: number;
+    readonly daily_fiber_goal_g: number;
   } | null;
 }
 
-export function DailyCalorieSummary({ summary, goals }: DailySummaryProps) {
-  const caloriesConsumed = summary?.total_calories || 0;
-  const calorieGoal = goals?.daily_calorie_goal || 2000;
-  const caloriesRemaining = calorieGoal - caloriesConsumed;
-  const calorieProgress = (caloriesConsumed / calorieGoal) * 100;
-
-  const macros = [
+function getMacros(summary: DailySummaryProps['summary'], goals: DailySummaryProps['goals']) {
+  return [
     {
       name: 'Protein',
       consumed: summary?.total_protein_g || 0,
@@ -57,7 +52,16 @@ export function DailyCalorieSummary({ summary, goals }: DailySummaryProps) {
       unit: 'g',
       color: 'bg-purple-500',
     },
-  ];
+  ] as const;
+}
+
+export function DailyCalorieSummary({ summary, goals }: DailySummaryProps) {
+  const caloriesConsumed = summary?.total_calories || 0;
+  const calorieGoal = goals?.daily_calorie_goal || 2000;
+  const caloriesRemaining = calorieGoal - caloriesConsumed;
+  const calorieProgress = (caloriesConsumed / calorieGoal) * 100;
+
+  const macros = getMacros(summary, goals);
 
   return (
     <Card>

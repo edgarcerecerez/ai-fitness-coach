@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle } from 'lucide-react'
 
 interface CalorieTrackerPageProps {
-  searchParams: Promise<{ success?: string; view?: string }>
+  readonly searchParams: Promise<Readonly<{ readonly success?: string; readonly view?: string }>>
 }
 
 /**
@@ -67,7 +67,8 @@ export default async function CalorieTrackerPage({ searchParams }: CalorieTracke
     .maybeSingle();
 
   if (dailySummaryError) {
-    console.error('Error fetching daily summary:', dailySummaryError);
+    const { default: logger } = await import('@/lib/logger');
+    logger.warn('Error fetching daily summary:', { error: dailySummaryError as unknown });
   }
 
   // Fetch user goals with error handling
@@ -78,7 +79,8 @@ export default async function CalorieTrackerPage({ searchParams }: CalorieTracke
     .maybeSingle();
 
   if (userGoalsError) {
-    console.error('Error fetching user goals:', userGoalsError);
+    const { default: logger } = await import('@/lib/logger');
+    logger.warn('Error fetching user goals:', { error: userGoalsError as unknown });
   }
 
   // Fetch recent meals with error handling
@@ -91,7 +93,8 @@ export default async function CalorieTrackerPage({ searchParams }: CalorieTracke
     .limit(5);
 
   if (recentMealsError) {
-    console.error('Error fetching recent meals:', recentMealsError);
+    const { default: logger } = await import('@/lib/logger');
+    logger.warn('Error fetching recent meals:', { error: recentMealsError as unknown });
   }
 
   // Main dashboard view

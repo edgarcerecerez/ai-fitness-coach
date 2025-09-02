@@ -100,7 +100,7 @@ Gesture/Voice → Action Router → Background Processing → UI Feedback
 ```
 
 **Changes Required**:
-- [ ] Create app icons (192x192, 512x512, favicon variants) - **Pending: Need actual icon files**
+- [x] Create app icons (192x192, 512x512, favicon variants) – Added placeholder PNGs under `public/icons/` (filenames: `icon-192x192.png`, `icon-512x512.png`, `icon-72x72.png`, `icon-96x96.png`, `icon-128x128.png`, `icon-144x144.png`, `icon-152x152.png`, `icon-384x384.png`, and favicons `favicon-16x16.png`, `favicon-32x32.png`, `favicon-48x48.png`).
 - [x] Configure manifest.json with proper metadata
 - [x] Set up shortcuts for quick actions
 - [x] Update `next.config.ts` to include manifest
@@ -109,6 +109,10 @@ Gesture/Voice → Action Router → Background Processing → UI Feedback
 - Added more icon sizes (72x72, 96x96, 128x128, 144x144, 152x152, 384x384) for better device support
 - Added orientation and additional metadata fields
 - Included screenshot placeholders for app stores
+
+Icons are located under `public/icons/` and referenced by `public/manifest.json`. Favicon variants are placed under `public/icons/` as `favicon-16x16.png`, `favicon-32x32.png`, `favicon-48x48.png`. Maskable icons (`icon-192x192.png`, `icon-512x512.png`) include `"purpose": "maskable any"` in the manifest to enable proper Android install support.
+
+Placeholder icons were generated with transparent/brand-colored backgrounds to unblock install; swap in final assets later without changing paths.
 
 ### 1.3 Offline Data Management
 
@@ -292,7 +296,49 @@ Key differences from planned implementation:
 
 ## 5. Testing Strategy
 
-Testing files were not created as part of this implementation. This remains as future work.
+We added a concise testing plan and initial tests to cover PWA, offline sync, and camera workflows.
+
+### 5.1 Unit Tests
+- Service Worker (`public/sw.js`) – using `jest` and `jsdom` with fetch/cache mocks
+  - **Caching strategies**: network-first for `/api/*`, cache-first for static assets
+  - **Offline fallback**: returns `offline.html` when network fails
+  - **Cache timestamping**: `sw-cached-date` header and expiration checks
+  - **Update flow**: `install`/`activate` lifecycle behaviors
+
+- Offline Storage & Sync (`src/lib/pwa/offline-storage.ts`, `src/lib/pwa/sync-service.ts`)
+  - **IndexedDB/localForage**: read/write, object store creation
+  - **Background sync**: queue processing, retry logic, deletion on success
+  - **Error handling**: network failures, retries capped, structured results
+
+- Image Optimizer (`src/lib/image/optimizer.ts`)
+  - **Permission/capture flows mocked**: optimize, thumbnail, error paths
+
+### 5.2 Integration/E2E Tests
+- Camera & Quick Photo (`src/app/quick-photo/page.tsx`, `src/components/calorie-tracker/OptimizedCamera.tsx`)
+  - **Permissions**: simulate denied/granted via mocks
+  - **Capture/resize**: verify blobs and base64 conversion
+  - **Queue/upload**: ensure navigation only after success
+
+We recommend Playwright for E2E (headless mobile emulation) for camera and installation prompts.
+
+### 5.3 Example Test Files
+- `src/lib/pwa/__tests__/sw.test.ts` – Service worker fetch strategies and offline fallback (mocks Cache API and `caches.match('/offline.html')`).
+- `src/lib/pwa/__tests__/offline-storage.test.ts` – IndexedDB init and read/write operations.
+- `src/lib/pwa/__tests__/sync-service.test.ts` – Sync queue processing with `jest.spyOn(global, 'fetch')`.
+- `src/components/calorie-tracker/__tests__/OptimizedCamera.test.tsx` – Permission/capture/resize flows with device API mocks.
+
+### 5.4 CI Steps
+Update CI (or local scripts) to run tests:
+```
+npm run lint
+npm test -- --runInBand
+```
+For E2E with Playwright:
+```
+npx playwright install --with-deps
+npx playwright test
+```
+Ensure service worker and manifest assets are available during E2E by starting the dev server in another process if needed.
 
 ## 6. Deployment Configuration
 

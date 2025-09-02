@@ -30,6 +30,8 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
   const [showTips, setShowTips] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const lightingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
 
   // Camera tips
   const tips = [
@@ -49,14 +51,23 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
     }, 4000);
 
     return () => {
-      clearInterval(tipInterval);
-      // Clean up lighting analysis interval
-      if (lightingIntervalRef.current) {
-        clearInterval(lightingIntervalRef.current);
+      mountedRef.current = false;
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = null;
       }
-      stopCamera();
+      clearInterval(tipInterval);
+      cleanupCameraResources();
     };
   }, [facingMode]);
+
+  const cleanupCameraResources = () => {
+    if (lightingIntervalRef.current) {
+      clearInterval(lightingIntervalRef.current);
+      lightingIntervalRef.current = null;
+    }
+    stopCamera();
+  };
 
   const startCamera = async () => {
     try {
@@ -69,6 +80,7 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
       // Clear any existing lighting analysis
       if (lightingIntervalRef.current) {
         clearInterval(lightingIntervalRef.current);
+        lightingIntervalRef.current = null;
       }
 
       const constraints = {
@@ -89,8 +101,9 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
 
       // Start lighting analysis
       analyzeLighting();
-    } catch (error) {
-      console.error('Error accessing camera:', error);
+    } catch (error: unknown) {
+      const errorDetails = error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : { message: String(error) };
+      console.error('Error accessing camera:', errorDetails);
       let errorMessage = 'Unable to access camera';
       
       if (error instanceof DOMException) {
@@ -167,20 +180,25 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Apply flash effect if enabled
+    // Apply flash effect if enabled with timeout guard
+    let flashTimeout: ReturnType<typeof setTimeout> | null = null;
     if (flashMode === 'on') {
       video.style.filter = 'brightness(1.5)';
-      await new Promise(resolve => setTimeout(resolve, 100));
+      flashTimeout = setTimeout(() => {
+        video.style.filter = 'brightness(1)';
+      }, 100);
+      flashTimeoutRef.current = flashTimeout;
     }
 
     ctx.drawImage(video, 0, 0);
 
-    // Reset flash effect
-    if (flashMode === 'on') {
+    // Reset flash effect if timeout not already did
+    if (flashMode === 'on' && !flashTimeout) {
       video.style.filter = 'brightness(1)';
     }
 
     canvas.toBlob((blob) => {
+      if (!mountedRef.current) return;
       if (blob) {
         const file = new File([blob], `meal-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
         

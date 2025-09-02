@@ -1,12 +1,12 @@
 interface ImageOptimizationOptions {
-  maxWidth: number;
-  maxHeight: number;
-  quality: number;
-  format: 'webp' | 'jpeg' | 'png';
+  readonly maxWidth: number;
+  readonly maxHeight: number;
+  readonly quality: number;
+  readonly format: 'webp' | 'jpeg' | 'png';
 }
 
 export class ImageOptimizer {
-  private defaultOptions: ImageOptimizationOptions = {
+  private readonly defaultOptions: ImageOptimizationOptions = {
     maxWidth: 1024,
     maxHeight: 1024,
     quality: 0.85,
@@ -49,28 +49,24 @@ export class ImageOptimizer {
           ctx.drawImage(img, 0, 0, width, height);
           
           // Convert to blob
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error('Failed to create blob'));
-                return;
-              }
-              
-              const optimizedFile = new File(
-                [blob], 
-                this.generateFileName(file.name, opts.format),
-                { type: `image/${opts.format}` }
-              );
-              
-              // Log compression stats
-              const compressionRatio = ((file.size - optimizedFile.size) / file.size * 100).toFixed(1);
-              console.log(`Image optimized: ${file.size} → ${optimizedFile.size} bytes (${compressionRatio}% reduction)`);
-              
-              resolve(optimizedFile);
-            },
-            `image/${opts.format}`,
-            opts.quality
-          );
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Failed to create blob'));
+              return;
+            }
+
+            const optimizedFile = new File(
+              [blob],
+              this.generateFileName(file.name, opts.format),
+              { type: `image/${opts.format}` }
+            );
+
+            // Log compression stats
+            const compressionRatio = ((file.size - optimizedFile.size) / file.size * 100).toFixed(1);
+            console.log(`Image optimized: ${file.size} → ${optimizedFile.size} bytes (${compressionRatio}% reduction)`);
+
+            resolve(optimizedFile);
+          }, `image/${opts.format}`, opts.quality);
         } catch (error) {
           reject(error);
         } finally {
@@ -194,7 +190,7 @@ export class ImageOptimizer {
     });
   }
 
-  async extractEXIFData(_file: File): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  async extractEXIFData(_file: File): Promise<unknown> {
     // ⚠️ UNIMPLEMENTED: This method is a placeholder and does not extract real EXIF data
     // TODO: Implement EXIF extraction using a library like:
     // - exif-js: https://github.com/exif-js/exif-js
@@ -214,4 +210,4 @@ export class ImageOptimizer {
 }
 
 // Singleton instance - only create in browser environment
-export const imageOptimizer = typeof window !== 'undefined' ? new ImageOptimizer() : null as any;
+export const imageOptimizer: ImageOptimizer | null = typeof window !== 'undefined' ? new ImageOptimizer() : null;

@@ -21,7 +21,7 @@ const toastVariants = cva(
 )
 
 export interface ToastProps extends React.ComponentPropsWithoutRef<"div">, VariantProps<typeof toastVariants> {
-  onClose?: () => void
+  readonly onClose?: () => void
 }
 
 /**
