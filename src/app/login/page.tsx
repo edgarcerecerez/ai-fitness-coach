@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, User, Lock, Mail, Eye, EyeOff } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { clientLogger, logError, logAuthEvent } from "@/lib/logger"
 
 type AuthMode = "login" | "signup"
@@ -31,6 +31,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo')
+  const target = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/app'
 
   // Log page initialization
   useEffect(() => {
@@ -231,7 +234,7 @@ export default function LoginPage() {
             hasSession: !!data?.session
           })
           // Redirect to app dashboard on successful login
-          router.push("/app")
+          router.push(target)
         }
       }
     } catch (error) {
