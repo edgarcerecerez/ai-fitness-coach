@@ -1,5 +1,47 @@
 # Phase 7.3: Withings Real-time Updates & Webhooks
 
+## Implementation Summary
+
+### 🏗️ Technology Stack & Architecture
+- **Primary Queue System**: **Inngest** for reliable webhook processing with built-in retries, monitoring, and scalability
+- **Webhook Security**: HMAC-SHA256 signature validation with timing-safe comparison 
+- **Message Queuing**: Hybrid approach using both Inngest and database-backed fallback queue
+- **Real-time Triggers**: **Does NOT use Supabase Realtime** - instead uses webhook-driven processing
+- **Push Notifications**: Multi-platform support (Web Push, APNS, FCM) with user preference management
+- **Database**: PostgreSQL via Supabase with specialized webhook event tracking tables
+
+### 🔄 Data Flow Architecture
+1. **Withings Device** → Measurement taken
+2. **Withings API** → Sends webhook to `/api/webhooks/withings`
+3. **Security Validation** → HMAC signature + timestamp verification
+4. **Inngest Queue** → Webhook queued for background processing
+5. **Webhook Processor** → Extracts data, triggers sync engine from Phase 7.2
+6. **Database Storage** → New measurements stored with conflict resolution
+7. **Push Notifications** → Users notified of new data (if enabled)
+
+### 🛠️ Key Technical Decisions
+- **No Supabase Realtime**: Webhooks provide more reliable real-time updates than polling/realtime subscriptions
+- **Inngest over Redis**: Leverages existing Inngest infrastructure for consistency with Phase 7.2 sync jobs
+- **Database-First Queuing**: Webhook events logged immediately for audit trail and retry capability
+- **Hybrid Notification System**: Supports multiple platforms with graceful degradation
+- **Signature-Based Security**: Industry standard HMAC validation prevents spoofed webhooks
+
+### 🔧 Inngest Integration Details
+- **Webhook Processing Function**: `webhookWithingsProcess` - handles individual webhook events
+- **Device Update Function**: `deviceUpdateScheduled` - periodic device discovery and updates  
+- **Notification Function**: `notificationSend` - handles push notification delivery
+- **Error Handling**: Built-in exponential backoff, dead letter queue for failed webhooks
+- **Monitoring**: Inngest dashboard provides real-time processing metrics and error tracking
+
+### 🗃️ Database Design Highlights
+- **Webhook Event Tracking**: Full audit trail with deduplication via `webhook_id`
+- **Device State Management**: Real-time device battery, connectivity, and feature tracking
+- **Notification Preferences**: Granular per-user settings with quiet hours support
+- **Subscription Management**: Tracks active webhook subscriptions per application type
+
+### 📋 Implementation Status
+❌ **NOT YET IMPLEMENTED** - This phase is in planning/design stage
+
 ## Overview
 This phase implements real-time data synchronization through Withings webhooks, enabling immediate processing of new measurements as they occur. It includes webhook endpoint security, message queue processing, push notifications, and device management.
 
@@ -881,9 +923,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, duplicate: true });
     }
 
-    // Queue webhook for processing
-    const queue = new WithingsWebhookQueue();
-    await queue.enqueue(webhookId, payload);
+    // Queue webhook for processing via Inngest
+    const { inngest } = await import('@/lib/inngest/client');
+    await inngest.send({
+      name: 'withings/webhook.received',
+      data: {
+        webhookId,
+        payload
+      }
+    });
 
     return NextResponse.json({ received: true });
 
@@ -963,10 +1011,68 @@ export async function POST(request: NextRequest) {
 
 ## Message Queue Implementation
 
-### 1. Webhook Message Queue
+### 1. Inngest Webhook Functions
 
 ```typescript
-// src/lib/queue/webhook-queue.ts
+// src/lib/inngest/withings-webhooks.ts
+import { inngest } from '@/lib/inngest/client';
+import { WithingsWebhookProcessor } from '@/lib/withings/webhook-processor';
+
+// Primary webhook processing function
+export const webhookWithingsProcess = inngest.createFunction(
+  { id: 'webhook-withings-process' },
+  { event: 'withings/webhook.received' },
+  async ({ event, step }) => {
+    const { webhookId, payload } = event.data;
+    const processor = new WithingsWebhookProcessor();
+
+    // Step 1: Validate and log webhook
+    const eventId = await step.run('log-webhook-event', async () => {
+      return processor.logWebhookEvent(webhookId, payload);
+    });
+
+    // Step 2: Process webhook data
+    const result = await step.run('process-webhook-data', async () => {
+      return processor.processWebhook(webhookId, payload);
+    });
+
+    // Step 3: Send user notifications
+    await step.run('send-notifications', async () => {
+      return processor.sendNotifications(eventId, result);
+    });
+
+    return { webhookId, eventId, result };
+  }
+);
+
+// Device update function
+export const deviceUpdateScheduled = inngest.createFunction(
+  { id: 'device-update-scheduled' },
+  { cron: '0 */6 * * *' }, // Every 6 hours
+  async ({ step }) => {
+    const deviceManager = new WithingsDeviceManager();
+    
+    const activeConnections = await step.run('get-active-connections', async () => {
+      return deviceManager.getActiveConnections();
+    });
+
+    const results = await step.run('update-all-devices', async () => {
+      return Promise.allSettled(
+        activeConnections.map(conn => 
+          deviceManager.updateDevicesForUser(conn.user_id)
+        )
+      );
+    });
+
+    return { processed: activeConnections.length, results };
+  }
+);
+```
+
+### 2. Webhook Message Queue (Fallback)
+
+```typescript
+// src/lib/queue/webhook-queue.ts  
 export class WithingsWebhookQueue {
   private static instance: WithingsWebhookQueue;
   private processor: WithingsWebhookProcessor;
