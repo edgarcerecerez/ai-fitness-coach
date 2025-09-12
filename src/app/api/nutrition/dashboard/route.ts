@@ -23,10 +23,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser().catch((err) => {
-      console.error('Supabase auth.getUser error', err);
-      throw err;
-    });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -41,11 +38,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .gte('date', format(startDate, 'yyyy-MM-dd'))
       .lte('date', format(endDate, 'yyyy-MM-dd'))
-      .order('date', { ascending: true })
-      .catch((err) => {
-        console.error('Supabase dailySummaries query error', err);
-        throw err;
-      });
+      .order('date', { ascending: true });
 
     if (summariesError) throw summariesError;
 
@@ -54,11 +47,7 @@ export async function GET(request: NextRequest) {
       .from('user_nutrition_goals')
       .select('*')
       .eq('user_id', user.id)
-      .single()
-      .catch((err) => {
-        console.error('Supabase userGoals query error', err);
-        throw err;
-      });
+      .single();
 
     if (goalsError && goalsError.code !== 'PGRST116') throw goalsError;
 
@@ -69,11 +58,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('processing_status', 'completed')
       .order('created_at', { ascending: false })
-      .limit(10)
-      .catch((err) => {
-        console.error('Supabase recentMeals query error', err);
-        throw err;
-      });
+      .limit(10);
 
     if (mealsError) throw mealsError;
 

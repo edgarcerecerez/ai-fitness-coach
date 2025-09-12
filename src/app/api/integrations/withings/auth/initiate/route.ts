@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     apiLogger.debug('Initiating Withings OAuth flow');
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

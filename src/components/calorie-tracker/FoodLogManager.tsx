@@ -179,11 +179,7 @@ export function FoodLogManager() {
         .from('nutrition_logs')
         .delete()
         .eq('id', logId)
-        .eq('user_id', user.id)
-        .catch((err) => {
-          console.error('Error deleting log (request failed):', err);
-          throw err;
-        });
+        .eq('user_id', user.id);
 
       if (error) throw error;
       fetchLogs();
@@ -283,7 +279,7 @@ export function FoodLogManager() {
                                 value={item.name}
                                 onChange={(e) => {
                                   const newItems = [...(editValues.food_items || [])];
-                                  newItems[index].name = e.target.value;
+                                  newItems[index] = { ...newItems[index], name: e.target.value };
                                   setEditValues({ ...editValues, food_items: newItems });
                                 }}
                                 placeholder="Food name"
@@ -292,7 +288,7 @@ export function FoodLogManager() {
                                 value={item.quantity}
                                 onChange={(e) => {
                                   const newItems = [...(editValues.food_items || [])];
-                                  newItems[index].quantity = e.target.value;
+                                  newItems[index] = { ...newItems[index], quantity: e.target.value };
                                   setEditValues({ ...editValues, food_items: newItems });
                                 }}
                                 placeholder="Quantity"
@@ -302,7 +298,7 @@ export function FoodLogManager() {
                                 value={item.calories}
                                 onChange={(e) => {
                                   const newItems = [...(editValues.food_items || [])];
-                                  newItems[index].calories = parseInt(e.target.value) || 0;
+                                  newItems[index] = { ...newItems[index], calories: parseInt(e.target.value) || 0 };
                                   setEditValues({ ...editValues, food_items: newItems });
                                 }}
                                 placeholder="Calories"
@@ -312,7 +308,7 @@ export function FoodLogManager() {
                                 value={item.protein_g}
                                 onChange={(e) => {
                                   const newItems = [...(editValues.food_items || [])];
-                                  newItems[index].protein_g = parseFloat(e.target.value) || 0;
+                                  newItems[index] = { ...newItems[index], protein_g: parseFloat(e.target.value) || 0 };
                                   setEditValues({ ...editValues, food_items: newItems });
                                 }}
                                 placeholder="Protein"

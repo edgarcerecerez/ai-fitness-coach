@@ -85,11 +85,7 @@ export async function GET(request: NextRequest) {
       .from('user_nutrition_goals')
       .select('*')
       .eq('user_id', user.id)
-      .single()
-      .catch((e) => {
-        console.error('Supabase select goals error', { userId: user.id, error: e });
-        throw e;
-      });
+      .single();
 
     if (error && error.code !== 'PGRST116') throw error;
 
@@ -130,11 +126,7 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .select()
-      .single()
-      .catch((e) => {
-        console.error('Supabase upsert goals error', { userId: user.id, error: e });
-        throw e;
-      });
+      .single();
 
     if (error) throw error;
 

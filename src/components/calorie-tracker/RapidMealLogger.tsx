@@ -103,95 +103,6 @@ export const RapidMealLogger: React.FC = () => {
     setShowCamera(true);
   }, []);
 
-  useEffect(() => {
-    // Register keyboard shortcuts
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case 'p':
-            e.preventDefault();
-            handleQuickPhoto();
-            break;
-          case 'v':
-            e.preventDefault();
-            handleVoiceEntry();
-            break;
-          case 'f':
-            e.preventDefault();
-            openFavorites();
-            break;
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleQuickPhoto, handleVoiceEntry, openFavorites]);
-
-  const handlePhotoCapture = async (photo: File) => {
-    setShowCamera(false);
-    
-    // Check authentication
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to capture meals",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    toast({
-      title: "Analyzing photo...",
-      description: "AI is processing your meal"
-    });
-
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const signedUrl = await syncService?.queuePhotoUpload({
-            fileName: photo.name,
-            base64: reader.result?.toString().split(',')[1],
-            mimeType: photo.type,
-            user_id: user.id // Use actual authenticated user ID
-          });
-
-          if (signedUrl) {
-            // Online: Photo uploaded successfully with signed URL
-            console.log('Photo uploaded with signed URL:', signedUrl);
-            toast({
-              title: "Meal logged!",
-              description: "Photo uploaded and ready for analysis"
-            });
-          } else {
-            // Offline: Photo queued for later sync
-            toast({
-              title: "Photo saved offline",
-              description: "Will upload when connection is restored"
-            });
-          }
-        } catch (error) {
-          console.error('Failed to upload photo:', error);
-          toast({
-            title: "Upload failed",
-            description: "Failed to upload photo. Please try again.",
-            variant: "destructive"
-          });
-        }
-      };
-      reader.readAsDataURL(photo);
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to process photo",
-        variant: "destructive"
-      });
-    }
-    
-    setMode(null);
-  };
-
   const handleVoiceEntry = useCallback(async () => {
     // Check authentication
     if (!user) {
@@ -308,6 +219,97 @@ export const RapidMealLogger: React.FC = () => {
     
     setMode(null);
   }, [toast]);
+
+  useEffect(() => {
+    // Register keyboard shortcuts
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'p':
+            e.preventDefault();
+            handleQuickPhoto();
+            break;
+          case 'v':
+            e.preventDefault();
+            handleVoiceEntry();
+            break;
+          case 'f':
+            e.preventDefault();
+            openFavorites();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleQuickPhoto, handleVoiceEntry, openFavorites]);
+
+  const handlePhotoCapture = async (photo: File) => {
+    setShowCamera(false);
+    
+    // Check authentication
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to capture meals",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Analyzing photo...",
+      description: "AI is processing your meal"
+    });
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const signedUrl = await syncService?.queuePhotoUpload({
+            fileName: photo.name,
+            base64: reader.result?.toString().split(',')[1],
+            mimeType: photo.type,
+            user_id: user.id // Use actual authenticated user ID
+          });
+
+          if (signedUrl) {
+            // Online: Photo uploaded successfully with signed URL
+            console.log('Photo uploaded with signed URL:', signedUrl);
+            toast({
+              title: "Meal logged!",
+              description: "Photo uploaded and ready for analysis"
+            });
+          } else {
+            // Offline: Photo queued for later sync
+            toast({
+              title: "Photo saved offline",
+              description: "Will upload when connection is restored"
+            });
+          }
+        } catch (error) {
+          console.error('Failed to upload photo:', error);
+          toast({
+            title: "Upload failed",
+            description: "Failed to upload photo. Please try again.",
+            variant: "destructive"
+          });
+        }
+      };
+      reader.readAsDataURL(photo);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to process photo",
+        variant: "destructive"
+      });
+    }
+    
+    setMode(null);
+  };
+
+
 
   const getMealType = (): string => {
     const hour = new Date().getHours();

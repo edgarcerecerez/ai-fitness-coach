@@ -52,7 +52,7 @@ export default function QuickPhotoPage() {
   const handlePhotoCapture = async (photo: File) => {
     try {
       // Optimize the image
-      const optimizedPhoto = await imageOptimizer.optimizeForUpload(photo);
+      const optimizedPhoto = imageOptimizer ? await imageOptimizer.optimizeForUpload(photo) : photo;
 
       toast({
         title: "Processing photo...",

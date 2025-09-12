@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     apiLogger.debug('Getting Withings connection status');
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
     const status: ConnectionStatus = {
       isConnected: !!connection && connection.isActive,
-      connectedAt: connection?.connectedAt,
-      lastSyncAt: connection?.lastSyncAt,
+      connectedAt: connection?.connectedAt || undefined,
+      lastSyncAt: connection?.lastSyncAt || undefined,
       withingsUserId: connection?.withingsUserId,
       scopes: connection?.scopes
     };

@@ -70,10 +70,11 @@ export class WithingsApiClient {
         connection = await this.refreshConnectionTokens(connection);
       }
 
-      const requestParams = {
-        ...params,
-        action: params.action ?? this.deriveAction(endpoint)
-      };
+      const requestParams: Record<string, string> = {};
+      for (const [key, value] of Object.entries(params)) {
+        requestParams[key] = String(value);
+      }
+      requestParams.action = String(params.action ?? this.deriveAction(endpoint));
 
       apiLogger.debug('Making Withings API request', {
         endpoint,

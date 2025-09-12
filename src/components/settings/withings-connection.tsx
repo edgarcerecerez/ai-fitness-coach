@@ -235,7 +235,7 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
               <>
                 <Wifi className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium">Connected</span>
-                <Badge variant="success">Active</Badge>
+                <Badge variant="default">Active</Badge>
               </>
             ) : (
               <>

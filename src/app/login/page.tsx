@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { Suspense } from "react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -15,12 +15,7 @@ import { clientLogger, logError, logAuthEvent } from "@/lib/logger"
 
 type AuthMode = "login" | "signup"
 
-/**
- * Displays a user authentication page with login, signup, and password reset features integrated with Supabase.
- *
- * Provides forms for users to sign in, create an account, or request a password reset. Includes client-side validation for email, password, and full name, manages UI state for loading and feedback messages, and handles authentication flows. Redirects users to their profile page upon successful login and prompts email confirmation after signup.
- */
-export default function LoginPage() {
+function LoginPageContent() {
   const [mode, setMode] = useState<AuthMode>("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -563,5 +558,26 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+/**
+ * Displays a user authentication page with login, signup, and password reset features integrated with Supabase.
+ *
+ * Provides forms for users to sign in, create an account, or request a password reset. Includes client-side validation for email, password, and full name, manages UI state for loading and feedback messages, and handles authentication flows. Redirects users to their profile page upon successful login and prompts email confirmation after signup.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center p-6">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   )
 }

@@ -9,7 +9,6 @@ import {
 import { dbLogger } from '../logger';
 
 export class WithingsConnectionService {
-  private supabase = createClient();
 
   /**
    * Store encrypted connection tokens
@@ -28,7 +27,8 @@ export class WithingsConnectionService {
       const encryptedAccessToken = encryptToken(tokens.accessToken);
       const encryptedRefreshToken = encryptToken(tokens.refreshToken);
 
-      const { data, error } = await this.supabase
+      const supabase = await createClient();
+      const { data, error } = await supabase
         .from('withings_connections')
         .insert({
           user_id: userId,
@@ -71,7 +71,8 @@ export class WithingsConnectionService {
    */
   async getConnection(userId: string): Promise<WithingsConnection | null> {
     try {
-      const { data, error } = await this.supabase
+      const supabase = await createClient();
+      const { data, error } = await supabase
         .from('withings_connections')
         .select('*')
         .eq('user_id', userId)
@@ -139,7 +140,8 @@ export class WithingsConnectionService {
       const encryptedAccessToken = encryptToken(tokens.accessToken);
       const encryptedRefreshToken = encryptToken(tokens.refreshToken);
 
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('withings_connections')
         .update({
           access_token_encrypted: JSON.stringify(encryptedAccessToken),
@@ -173,10 +175,11 @@ export class WithingsConnectionService {
    */
   async incrementRefreshFailureCount(connectionId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('withings_connections')
         .update({
-          refresh_failure_count: this.supabase.rpc('increment_refresh_failure_count'),
+          refresh_failure_count: supabase.rpc('increment_refresh_failure_count'),
           updated_at: new Date().toISOString()
         })
         .eq('id', connectionId);
@@ -198,7 +201,8 @@ export class WithingsConnectionService {
         userId: userId.substring(0, 8) + '...'
       });
 
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('withings_connections')
         .update({
           is_active: false,
@@ -212,7 +216,7 @@ export class WithingsConnectionService {
       }
 
       // Get connection ID for logging
-      const { data } = await this.supabase
+      const { data } = await supabase
         .from('withings_connections')
         .select('id')
         .eq('user_id', userId)
@@ -241,7 +245,8 @@ export class WithingsConnectionService {
     expiresAt: Date
   ): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('withings_auth_states')
         .insert({
           state,
@@ -270,8 +275,9 @@ export class WithingsConnectionService {
    */
   async getAndConsumeAuthState(state: string): Promise<WithingsAuthStateRecord | null> {
     try {
+      const supabase = await createClient();
       // Get auth state
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .from('withings_auth_states')
         .select('*')
         .eq('state', state)
@@ -287,7 +293,7 @@ export class WithingsConnectionService {
       }
 
       // Delete auth state (consume it)
-      await this.supabase
+      await supabase
         .from('withings_auth_states')
         .delete()
         .eq('state', state);
@@ -308,7 +314,8 @@ export class WithingsConnectionService {
    */
   async cleanupExpiredAuthStates(): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('withings_auth_states')
         .delete()
         .lt('expires_at', new Date().toISOString());
@@ -328,7 +335,8 @@ export class WithingsConnectionService {
    */
   async updateLastSyncTime(connectionId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('withings_connections')
         .update({
           last_sync_at: new Date().toISOString(),
@@ -353,7 +361,8 @@ export class WithingsConnectionService {
     eventData?: Record<string, unknown>
   ): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('withings_connection_events')
         .insert({
           connection_id: connectionId,

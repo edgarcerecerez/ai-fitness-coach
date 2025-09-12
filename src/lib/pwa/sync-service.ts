@@ -99,7 +99,9 @@ export class SyncService {
     }
     
     this.syncInProgress = true;
-    const result: SyncResult = { success: 0, failed: 0, errors: [] };
+    let success = 0;
+    let failed = 0;
+    const errors: Array<{ id: string; error: string }> = [];
     
     try {
       const unsynced = await getOfflineStorage().getUnsynced();
@@ -109,10 +111,10 @@ export class SyncService {
         try {
           await this.syncEntry(entry);
           await getOfflineStorage().markSynced(entry.id);
-          result.success++;
+          success++;
         } catch (error) {
-          result.failed++;
-          (result.errors as Array<{ id: string; error: string }>).push({
+          failed++;
+          errors.push({
             id: entry.id,
             error: error instanceof Error ? error.message : 'Unknown error'
           });
@@ -128,14 +130,14 @@ export class SyncService {
         }
       }
       
-      console.log(`Sync complete: ${result.success} success, ${result.failed} failed`);
+      console.log(`Sync complete: ${success} success, ${failed} failed`);
     } catch (error) {
       console.error('Sync error:', error);
     } finally {
       this.syncInProgress = false;
     }
     
-    return result;
+    return { success, failed, errors };
   }
   
   private async syncEntry(entry: SyncEntry): Promise<void> {

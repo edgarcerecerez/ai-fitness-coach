@@ -10,7 +10,7 @@ export async function DELETE(request: NextRequest) {
   try {
     apiLogger.debug('Disconnecting Withings account');
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   try {
     apiLogger.debug('Testing Withings connection');
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

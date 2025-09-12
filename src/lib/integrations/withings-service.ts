@@ -21,8 +21,8 @@ export class WithingsService {
 
       const status: ConnectionStatus = {
         isConnected: !!connection && connection.isActive,
-        connectedAt: connection?.connectedAt,
-        lastSyncAt: connection?.lastSyncAt,
+        connectedAt: connection?.connectedAt || undefined,
+        lastSyncAt: connection?.lastSyncAt || undefined,
         withingsUserId: connection?.withingsUserId,
         scopes: connection?.scopes
       };
@@ -67,7 +67,7 @@ export class WithingsService {
       if (response.status === 0 && response.body) {
         apiLogger.info('Successfully retrieved user info from Withings', {
           userId: userId.substring(0, 8) + '...',
-          withingsUserId: response.body.userid
+          withingsUserId: (response.body as any)?.userid
         });
         return response.body;
       }
@@ -119,7 +119,7 @@ export class WithingsService {
 
         apiLogger.info('Successfully retrieved weight measurements from Withings', {
           userId: userId.substring(0, 8) + '...',
-          measurementCount: response.body.measuregrps?.length || 0,
+          measurementCount: (response.body as any)?.measuregrps?.length || 0,
           startDate: options.startDate?.toISOString(),
           endDate: options.endDate?.toISOString()
         });
@@ -182,7 +182,7 @@ export class WithingsService {
 
         apiLogger.info('Successfully retrieved body measurements from Withings', {
           userId: userId.substring(0, 8) + '...',
-          measurementCount: response.body.measuregrps?.length || 0,
+          measurementCount: (response.body as any)?.measuregrps?.length || 0,
           measureTypes: options.measureTypes,
           startDate: options.startDate?.toISOString(),
           endDate: options.endDate?.toISOString()
@@ -244,11 +244,11 @@ export class WithingsService {
 
     if (error instanceof WithingsApiError) {
       // Retry on temporary server errors
-      return error.status >= 500 && error.status < 600;
+      return (error.status ?? 0) >= 500 && (error.status ?? 0) < 600;
     }
 
     // Network errors might be retryable
-    if (error.code === 'network_error') {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'network_error') {
       return true;
     }
 
@@ -293,7 +293,7 @@ export class WithingsService {
           attempt,
           maxRetries,
           retryDelay: delay,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
 
         await new Promise(resolve => setTimeout(resolve, delay));
