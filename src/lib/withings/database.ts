@@ -331,7 +331,7 @@ export class WithingsConnectionService {
   }
 
   /**
-   * Update last sync time
+   * Update last sync time by connection ID
    */
   async updateLastSyncTime(connectionId: string): Promise<void> {
     try {
@@ -349,6 +349,28 @@ export class WithingsConnectionService {
       }
     } catch (error) {
       dbLogger.error('Failed to update last sync time', { error, connectionId });
+    }
+  }
+
+  /**
+   * Update last sync time by user ID
+   */
+  async updateLastSync(userId: string): Promise<void> {
+    try {
+      const supabase = await createClient();
+      const { error } = await supabase
+        .from('withings_connections')
+        .update({
+          last_sync_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (error) {
+        dbLogger.error('Failed to update last sync time for user', { error, userId });
+      }
+    } catch (error) {
+      dbLogger.error('Failed to update last sync time for user', { error, userId });
     }
   }
 

@@ -5,6 +5,12 @@ import { inngest } from '@/lib/inngest/client';
 import { analyzeFoodImage } from '@/lib/inngest/functions/analyze-food';
 import { updateNutritionData } from '@/lib/inngest/functions/update-nutrition';
 import { handleAnalysisError } from '@/lib/inngest/functions/error-handler';
+// Withings sync functions
+import { 
+  scheduledWithingsSync, 
+  manualWithingsSync, 
+  historicalWithingsSync 
+} from '@/lib/inngest/withings-sync';
 
 // Conditionally export the routes only if environment variables are available
 let routes;
@@ -17,6 +23,10 @@ if (inngest) {
       analyzeFoodImage,
       updateNutritionData,
       handleAnalysisError,
+      // Withings sync functions
+      scheduledWithingsSync,
+      manualWithingsSync,
+      historicalWithingsSync,
     ],
   });
 } else {

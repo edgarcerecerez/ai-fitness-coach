@@ -1,5 +1,32 @@
 # Phase 7.2: Withings Data Synchronization Engine
 
+## Technical Implementation Summary
+
+### Real-time Sync Architecture
+This phase **does not use Supabase Realtime** or traditional websockets. Instead, it employs a **hybrid sync approach**:
+
+1. **Scheduled Background Jobs**: Uses Inngest for scheduled sync jobs every 4 hours for connected users
+2. **Manual Sync Triggers**: Users can manually trigger immediate sync via API endpoints that queue Inngest jobs
+3. **Webhook Preparation**: Prepares the foundation for Phase 7.3's real-time webhooks from Withings (also using Inngest)
+
+### Key Technical Components
+- **Job Queue System**: Uses Inngest for background job processing with built-in retries and monitoring
+- **Conflict Resolution**: Automated detection and resolution of overlapping manual vs. device measurements
+- **Batch Processing**: Handles large historical datasets with pagination and rate limiting
+- **Idempotent Operations**: Prevents duplicate data import through unique constraints and measurement ID tracking
+
+### Data Flow
+1. **Inngest Scheduled Job** → Checks users needing sync (last sync > 4 hours ago)
+2. **API Client** → Fetches measurements from Withings with rate limiting (120 req/min)
+3. **Data Processing** → Validates, transforms, and deduplicates measurement data
+4. **Conflict Detection** → Compares with existing manual entries within time windows
+5. **Database Storage** → Stores in `weight_logs` with Withings metadata and sync status
+
+### Scalability Approach
+- **Background Processing**: Inngest handles async job processing for multiple users concurrently
+- **Database Optimization**: Indexes on sync status, measurement IDs, and timestamps
+- **Error Handling**: Inngest provides built-in exponential backoff, retries, and error tracking
+
 ## Overview
 This phase implements the core data synchronization engine for retrieving, processing, and storing measurement data from Withings devices. It includes historical data import, real-time syncing, conflict resolution, and data validation.
 
@@ -15,11 +42,11 @@ src/
 │   │   ├── conflict-resolver.ts # Handle data conflicts
 │   │   ├── data-mapper.ts       # Transform Withings data to app format
 │   │   └── validation.ts        # Data validation utilities
-│   └── jobs/
-│       ├── withings-sync.ts     # Background sync jobs
-│       └── queue-processor.ts   # Job queue management
+│   └── inngest/
+│       ├── withings-sync.ts     # Inngest sync functions
+│       └── sync-scheduler.ts    # Inngest scheduled jobs
 ├── app/api/integrations/withings/
-│   ├── sync/route.ts            # Manual sync trigger
+│   ├── sync/route.ts            # Manual sync trigger (queues Inngest jobs)
 │   ├── sync-history/route.ts    # Sync job history
 │   └── measurements/route.ts    # Get measurement data
 └── components/
@@ -31,10 +58,11 @@ src/
 ## Database Schema Extensions
 
 ```sql
--- Sync job tracking
+-- Sync job tracking (enhanced for Inngest integration)
 CREATE TABLE withings_sync_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   connection_id UUID NOT NULL REFERENCES withings_connections(id) ON DELETE CASCADE,
+  inngest_event_id VARCHAR, -- Inngest event ID for tracking
   job_type VARCHAR NOT NULL, -- 'manual', 'webhook', 'scheduled', 'historical'
   status VARCHAR NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed', 'cancelled'
   start_date TIMESTAMP WITH TIME ZONE,
@@ -46,7 +74,7 @@ CREATE TABLE withings_sync_jobs (
   error_message TEXT,
   error_code VARCHAR,
   retry_count INTEGER DEFAULT 0,
-  max_retries INTEGER DEFAULT 3,
+  max_retries INTEGER DEFAULT 3, -- Inngest handles retries, this is for tracking
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   completed_at TIMESTAMP WITH TIME ZONE
@@ -56,6 +84,7 @@ CREATE TABLE withings_sync_jobs (
 CREATE INDEX idx_withings_sync_jobs_connection_id ON withings_sync_jobs(connection_id);
 CREATE INDEX idx_withings_sync_jobs_status ON withings_sync_jobs(status);
 CREATE INDEX idx_withings_sync_jobs_created_at ON withings_sync_jobs(created_at);
+CREATE INDEX idx_withings_sync_jobs_inngest_event ON withings_sync_jobs(inngest_event_id);
 
 -- Sync job details for debugging
 CREATE TABLE withings_sync_job_details (
@@ -153,22 +182,25 @@ export class WithingsSyncEngine {
   }
 
   /**
-   * Start sync job for user
+   * Start sync job for user (Inngest-compatible)
    */
-  async startSync(userId: string, options: SyncJobOptions): Promise<string> {
+  async startSync(userId: string, options: SyncJobOptions, inngestEventId?: string): Promise<string> {
     const connection = await this.connectionService.getConnection(userId);
     if (!connection) {
       throw new Error('No active Withings connection found');
     }
 
-    // Create sync job record
-    const syncJob = await this.createSyncJob(connection.id, options);
+    // Create sync job record with Inngest event tracking
+    const syncJob = await this.createSyncJob(connection.id, options, inngestEventId);
     
-    // Process sync in background
-    this.processSyncJob(syncJob.id, userId, options).catch(error => {
-      console.error(`Sync job ${syncJob.id} failed:`, error);
-      this.updateSyncJobStatus(syncJob.id, 'failed', error.message);
-    });
+    // For Inngest, return job ID immediately - processing handled by Inngest function
+    // For non-Inngest calls, process in background (backward compatibility)
+    if (!inngestEventId) {
+      this.processSyncJob(syncJob.id, userId, options).catch(error => {
+        console.error(`Sync job ${syncJob.id} failed:`, error);
+        this.updateSyncJobStatus(syncJob.id, 'failed', error.message);
+      });
+    }
 
     return syncJob.id;
   }
@@ -394,13 +426,14 @@ export class WithingsSyncEngine {
   }
 
   // Helper methods for database operations
-  private async createSyncJob(connectionId: string, options: SyncJobOptions): Promise<any> {
+  private async createSyncJob(connectionId: string, options: SyncJobOptions, inngestEventId?: string): Promise<any> {
     const { supabase } = await import('@/utils/supabase/server');
     
     const { data, error } = await supabase
       .from('withings_sync_jobs')
       .insert({
         connection_id: connectionId,
+        inngest_event_id: inngestEventId,
         job_type: options.jobType || 'manual',
         start_date: options.startDate?.toISOString(),
         end_date: options.endDate?.toISOString()
@@ -410,6 +443,43 @@ export class WithingsSyncEngine {
 
     if (error) throw error;
     return data;
+  }
+
+  /**
+   * Wait for sync completion (used by Inngest functions)
+   */
+  async waitForSyncCompletion(jobId: string, timeoutMs: number): Promise<SyncResult> {
+    const { supabase } = await import('@/utils/supabase/server');
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < timeoutMs) {
+      const { data: job } = await supabase
+        .from('withings_sync_jobs')
+        .select('status, measurements_processed, measurements_synced, measurements_skipped, error_message')
+        .eq('id', jobId)
+        .single();
+
+      if (!job) {
+        throw new Error(`Sync job ${jobId} not found`);
+      }
+
+      if (job.status === 'completed') {
+        return {
+          processed: job.measurements_processed || 0,
+          synced: job.measurements_synced || 0,
+          skipped: job.measurements_skipped || 0
+        };
+      }
+
+      if (job.status === 'failed') {
+        throw new Error(`Sync job failed: ${job.error_message || 'Unknown error'}`);
+      }
+
+      // Wait 2 seconds before checking again
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    throw new Error(`Sync job ${jobId} timeout after ${timeoutMs}ms`);
   }
 
   private async updateSyncJobStatus(
@@ -1006,60 +1076,215 @@ export async function GET(request: NextRequest) {
 
 ## Background Jobs
 
-### 1. Scheduled Sync Job
+### 1. Inngest Scheduled Sync Functions
 
 ```typescript
-// src/lib/jobs/withings-sync.ts
+// src/lib/inngest/withings-sync.ts
+import { inngest } from '@/lib/inngest/client';
 import { WithingsSyncEngine } from '@/lib/withings/sync-engine';
 
-export class ScheduledWithingsSync {
-  private syncEngine: WithingsSyncEngine;
-
-  constructor() {
-    this.syncEngine = new WithingsSyncEngine();
-  }
-
-  /**
-   * Run scheduled sync for all connected users
-   */
-  async runScheduledSync(): Promise<void> {
-    const { supabase } = await import('@/utils/supabase/server');
+// Scheduled sync function - runs every 4 hours
+export const scheduledWithingsSync = inngest.createFunction(
+  { id: 'withings-scheduled-sync' },
+  { cron: '0 */4 * * *' }, // Every 4 hours
+  async ({ step }) => {
+    const syncEngine = new WithingsSyncEngine();
     
-    // Get all active connections that need sync
-    const { data: connections } = await supabase
-      .from('withings_connections')
-      .select('user_id, last_sync_at')
-      .eq('is_active', true);
+    // Step 1: Get all active connections that need sync
+    const connections = await step.run('get-connections-needing-sync', async () => {
+      const { supabase } = await import('@/utils/supabase/server');
+      
+      const { data } = await supabase
+        .from('withings_connections')
+        .select('user_id, last_sync_at, id')
+        .eq('is_active', true);
+      
+      if (!data) return [];
+      
+      // Filter connections that haven't synced in 4+ hours
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      return data.filter(conn => {
+        const lastSync = conn.last_sync_at ? new Date(conn.last_sync_at) : null;
+        return !lastSync || lastSync < fourHoursAgo;
+      });
+    });
 
-    if (!connections) return;
-
-    const promises = connections.map(async (connection) => {
-      try {
-        // Only sync if last sync was more than 4 hours ago
-        const lastSync = connection.last_sync_at ? new Date(connection.last_sync_at) : null;
-        const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-
-        if (!lastSync || lastSync < fourHoursAgo) {
-          await this.syncEngine.startSync(connection.user_id, {
+    // Step 2: Process each connection that needs sync
+    const results = await step.run('process-sync-jobs', async () => {
+      const promises = connections.map(async (connection) => {
+        try {
+          const lastSync = connection.last_sync_at ? new Date(connection.last_sync_at) : null;
+          const jobId = await syncEngine.startSync(connection.user_id, {
             jobType: 'scheduled',
             lastUpdate: lastSync || undefined
           });
+          
+          return { userId: connection.user_id, jobId, success: true };
+        } catch (error) {
+          console.error(`Scheduled sync failed for user ${connection.user_id}:`, error);
+          return { userId: connection.user_id, error: error.message, success: false };
         }
-      } catch (error) {
-        console.error(`Scheduled sync failed for user ${connection.user_id}:`, error);
+      });
+
+      return Promise.allSettled(promises);
+    });
+
+    return {
+      processedConnections: connections.length,
+      results: results.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason })
+    };
+  }
+);
+
+// Manual sync function - triggered by API endpoints
+export const manualWithingsSync = inngest.createFunction(
+  { id: 'withings-manual-sync' },
+  { event: 'withings/sync.manual' },
+  async ({ event, step }) => {
+    const { userId, options } = event.data;
+    const syncEngine = new WithingsSyncEngine();
+
+    // Start the sync process
+    const jobId = await step.run('start-manual-sync', async () => {
+      return syncEngine.startSync(userId, {
+        ...options,
+        jobType: 'manual'
+      });
+    });
+
+    // Wait for sync completion with timeout
+    const result = await step.run('wait-for-completion', async () => {
+      return syncEngine.waitForSyncCompletion(jobId, 300000); // 5 minute timeout
+    });
+
+    return {
+      userId,
+      jobId,
+      result
+    };
+  }
+);
+
+// Historical data import function - for initial sync of large datasets  
+export const historicalWithingsSync = inngest.createFunction(
+  { id: 'withings-historical-sync' },
+  { event: 'withings/sync.historical' },
+  async ({ event, step }) => {
+    const { userId, dateRange } = event.data;
+    const syncEngine = new WithingsSyncEngine();
+
+    // Process historical data in batches to avoid timeouts
+    const jobId = await step.run('start-historical-sync', async () => {
+      return syncEngine.startSync(userId, {
+        jobType: 'historical',
+        startDate: new Date(dateRange.startDate),
+        endDate: new Date(dateRange.endDate),
+        batchSize: 100 // Process in smaller batches
+      });
+    });
+
+    return {
+      userId,
+      jobId,
+      dateRange
+    };
+  }
+);
+```
+
+### 2. Inngest Client Setup
+
+```typescript
+// src/lib/inngest/client.ts
+import { Inngest } from 'inngest';
+
+export const inngest = new Inngest({
+  id: 'ai-fitness-coach',
+  name: 'AI Fitness Coach',
+});
+```
+
+### 3. API Route Integration
+
+```typescript
+// src/app/api/integrations/withings/sync/route.ts (updated)
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import { inngest } from '@/lib/inngest/client';
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { startDate, endDate, measurementTypes } = body;
+
+    // Queue manual sync job with Inngest
+    const event = await inngest.send({
+      name: 'withings/sync.manual',
+      data: {
+        userId: user.id,
+        options: {
+          startDate,
+          endDate,
+          measurementTypes
+        }
       }
     });
 
-    await Promise.allSettled(promises);
+    return NextResponse.json({ 
+      eventId: event.ids[0], 
+      status: 'queued',
+      message: 'Sync job queued successfully' 
+    });
+  } catch (error) {
+    console.error('Manual sync failed:', error);
+    return NextResponse.json(
+      { error: 'Failed to queue sync job' },
+      { status: 500 }
+    );
   }
 }
+```
 
-// Cron job setup (if using Vercel Cron or similar)
-export async function GET() {
-  const sync = new ScheduledWithingsSync();
-  await sync.runScheduledSync();
-  return new Response('OK');
-}
+### 4. Inngest Serve Endpoint
+
+```typescript
+// src/app/api/inngest/route.ts
+import { serve } from 'inngest/next';
+import { inngest } from '@/lib/inngest/client';
+import { 
+  scheduledWithingsSync, 
+  manualWithingsSync, 
+  historicalWithingsSync 
+} from '@/lib/inngest/withings-sync';
+
+// Register all Withings sync functions with Inngest
+export const { GET, POST, PUT } = serve({
+  client: inngest,
+  functions: [
+    scheduledWithingsSync,
+    manualWithingsSync,
+    historicalWithingsSync,
+  ],
+});
+```
+
+### 5. Environment Variables for Inngest
+
+```bash
+# .env.local additions for Inngest
+INNGEST_EVENT_KEY=your_inngest_event_key
+INNGEST_SIGNING_KEY=your_inngest_signing_key
+
+# Production
+INNGEST_EVENT_KEY=your_production_inngest_event_key
+INNGEST_SIGNING_KEY=your_production_inngest_signing_key
 ```
 
 ## Testing Strategy

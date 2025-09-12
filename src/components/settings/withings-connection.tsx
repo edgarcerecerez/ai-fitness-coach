@@ -1,13 +1,14 @@
 'use client';
 
 // UI component for managing Withings connection
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Wifi, WifiOff, TestTube, Unlink, ExternalLink } from 'lucide-react';
 import { ConnectionStatus } from '@/lib/withings/types';
 import { useToast } from '@/hooks/use-toast';
+import { WithingsSyncStatus } from './withings-sync-status';
 
 interface WithingsConnectionProps {
   onConnectionChange?: (isConnected: boolean) => void;
@@ -62,9 +63,9 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
       // Clear URL params
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [toast]);
+  }, [toast, loadConnectionStatus]);
 
-  const loadConnectionStatus = async () => {
+  const loadConnectionStatus = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/integrations/withings/status');
@@ -86,7 +87,7 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleConnect = async () => {
     try {
@@ -329,17 +330,26 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
           )}
         </div>
 
-        {/* Help Text */}
-        <div className="text-xs text-gray-500 bg-blue-50 rounded-lg p-3">
-          <p className="font-medium mb-1">What this enables:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Automatic weight data sync from your Withings scale</li>
-            <li>Historical weight data import</li>
-            <li>Real-time updates when you weigh yourself</li>
-            <li>Integration with your fitness tracking and AI recommendations</li>
-          </ul>
-        </div>
+        {/* Help Text for Disconnected State */}
+        {!status?.isConnected && (
+          <div className="text-xs text-gray-500 bg-blue-50 rounded-lg p-3">
+            <p className="font-medium mb-1">What this enables:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Automatic weight data sync from your Withings scale</li>
+              <li>Historical weight data import</li>
+              <li>Real-time updates when you weigh yourself</li>
+              <li>Integration with your fitness tracking and AI recommendations</li>
+            </ul>
+          </div>
+        )}
       </CardContent>
+      
+      {/* Sync Status - only show when connected */}
+      {status?.isConnected && (
+        <CardContent className="pt-0">
+          <WithingsSyncStatus />
+        </CardContent>
+      )}
     </Card>
   );
 }

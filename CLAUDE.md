@@ -88,6 +88,11 @@ All tables use Row Level Security (RLS) with user-specific access policies.
 - Client-side state with React hooks
 - Authentication state managed by Supabase Auth
 
+### Background Jobs & Queue System
+- **Inngest**: Default choice for queue systems, long-running jobs, and background processing
+- Use Inngest for scheduled jobs, webhooks processing, and async operations
+- Provides built-in retries, error handling, and job monitoring
+
 ### Environment Configuration
 - Copy `env.example` to `.env.local` for local development
 - Set `LOG_LEVEL=debug` for detailed debugging
