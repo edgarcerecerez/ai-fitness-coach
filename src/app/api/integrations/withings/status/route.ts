@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (profileError || !profile) {
-      apiLogger.error('Failed to get user profile for status check', { 
+      apiLogger.warn('Failed to get user profile for status check', { 
         error: profileError, 
         userId: user.id 
       });

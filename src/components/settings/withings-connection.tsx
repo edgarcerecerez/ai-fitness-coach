@@ -5,8 +5,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Loader2, Wifi, WifiOff, TestTube, Unlink, ExternalLink } from 'lucide-react';
 import { ConnectionStatus } from '@/lib/withings/types';
+import { formatDateTime } from '@/lib/utils/date';
 import { useToast } from '@/hooks/use-toast';
 import { WithingsSyncStatus } from './withings-sync-status';
 
@@ -87,7 +89,7 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, onConnectionChange]);
 
   const handleConnect = async () => {
     try {
@@ -148,10 +150,6 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect your Withings account? This will stop syncing weight data.')) {
-      return;
-    }
-    
     try {
       setDisconnecting(true);
       const response = await fetch('/api/integrations/withings/connection', {
@@ -181,16 +179,6 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
     }
   };
 
-  const formatDate = (dateString: string | Date) => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   if (loading) {
     return (
@@ -253,12 +241,12 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
           <div className="space-y-2 text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
             {status.connectedAt && (
               <div>
-                <span className="font-medium">Connected:</span> {formatDate(status.connectedAt)}
+                <span className="font-medium">Connected:</span> {formatDateTime(status.connectedAt)}
               </div>
             )}
             {status.lastSyncAt && (
               <div>
-                <span className="font-medium">Last Sync:</span> {formatDate(status.lastSyncAt)}
+                <span className="font-medium">Last Sync:</span> {formatDateTime(status.lastSyncAt)}
               </div>
             )}
             {status.withingsUserId && (
@@ -299,20 +287,37 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
                 )}
                 Test Connection
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-                className="flex items-center gap-2 text-red-600 hover:text-red-700"
-              >
-                {disconnecting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Unlink className="h-4 w-4" />
-                )}
-                Disconnect
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={disconnecting}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                  >
+                    {disconnecting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Unlink className="h-4 w-4" />
+                    )}
+                    Disconnect
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Disconnect Withings Account</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to disconnect your Withings account? This will stop syncing weight data and remove access to your health measurements.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDisconnect} className="bg-red-600 hover:bg-red-700">
+                      Disconnect
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           ) : (
             <Button

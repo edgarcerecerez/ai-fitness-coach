@@ -1,5 +1,8 @@
 import { getInngestClient } from '@/lib/inngest/client';
 import { WithingsSyncEngine } from '@/lib/withings/sync-engine';
+import { WithingsWebhookProcessor } from '@/lib/withings/webhook-processor';
+import { WithingsDeviceManager } from '@/lib/withings/device-manager';
+import { WithingsNotificationService } from '@/lib/withings/notification-service';
 import { apiLogger } from '@/lib/logger';
 
 // Get the Inngest client
@@ -169,3 +172,138 @@ export const historicalWithingsSync = inngest.createFunction(
     };
   }
 );
+
+// Phase 7.3: Webhook Processing Functions
+
+// Primary webhook processing function
+export const webhookWithingsProcess = inngest.createFunction(
+  { id: 'webhook-withings-process' },
+  { event: 'withings/webhook.received' },
+  async ({ event, step }) => {
+    const { webhookId, payload } = event.data;
+    const processor = new WithingsWebhookProcessor();
+
+    apiLogger.info('Processing Withings webhook', { webhookId, userId: payload.userid });
+
+    // Step 1: Process webhook data
+    const result = await step.run('process-webhook-data', async () => {
+      try {
+        return await processor.processWebhook(webhookId, payload);
+      } catch (error) {
+        apiLogger.error('Failed to process webhook', { webhookId, error });
+        throw error;
+      }
+    });
+
+    // Step 2: Send user notifications if data was synced
+    if (result.synced > 0) {
+      await step.run('send-notifications', async () => {
+        try {
+          const notificationService = new WithingsNotificationService();
+          
+          // Find user ID from webhook payload
+          const { createClient } = await import('@/utils/supabase/server');
+          const supabase = createClient();
+          
+          const { data: connection } = await supabase
+            .from('withings_connections')
+            .select('user_id')
+            .eq('withings_user_id', payload.userid)
+            .eq('is_active', true)
+            .single();
+
+          if (connection) {
+            await notificationService.sendMeasurementNotification(
+              connection.user_id,
+              getApplicationTypeName(payload.appli),
+              result.synced
+            );
+          }
+        } catch (error) {
+          apiLogger.error('Failed to send webhook notification', { webhookId, error });
+          // Don't fail the entire webhook processing if notifications fail
+        }
+      });
+    }
+
+    apiLogger.info('Webhook processing completed', { 
+      webhookId, 
+      result,
+      userId: payload.userid
+    });
+
+    return { webhookId, result };
+  }
+);
+
+// Device update function - scheduled every 6 hours
+export const deviceUpdateScheduled = inngest.createFunction(
+  { id: 'device-update-scheduled' },
+  { cron: '0 */6 * * *' }, // Every 6 hours
+  async ({ step }) => {
+    const deviceManager = new WithingsDeviceManager();
+    
+    // Get all active connections
+    const activeConnections = await step.run('get-active-connections', async () => {
+      return await deviceManager.getActiveConnections();
+    });
+
+    apiLogger.info('Scheduled device update started', { 
+      connectionsToUpdate: activeConnections.length 
+    });
+
+    // Update devices for all active connections
+    const results = await step.run('update-all-devices', async () => {
+      const promises = activeConnections.map(async connection => {
+        try {
+          const devices = await deviceManager.updateDevicesForUser(connection.user_id);
+          return { 
+            userId: connection.user_id, 
+            success: true, 
+            deviceCount: devices.length 
+          };
+        } catch (error) {
+          apiLogger.error('Failed to update devices for user', {
+            userId: connection.user_id,
+            error
+          });
+          return { 
+            userId: connection.user_id, 
+            success: false, 
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      });
+
+      return Promise.allSettled(promises);
+    });
+
+    const successCount = results.filter(r => 
+      r.status === 'fulfilled' && r.value.success
+    ).length;
+
+    apiLogger.info('Scheduled device update completed', {
+      processedConnections: activeConnections.length,
+      successfulUpdates: successCount,
+      failedUpdates: activeConnections.length - successCount
+    });
+
+    return { 
+      processed: activeConnections.length, 
+      successful: successCount,
+      results: results.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason })
+    };
+  }
+);
+
+// Utility function to get application type name
+function getApplicationTypeName(appli: number): string {
+  switch (appli) {
+    case 1: return 'weight';
+    case 4: return 'blood_pressure';
+    case 16: return 'activity';
+    case 44: return 'sleep';
+    case 46: return 'device';
+    default: return 'unknown';
+  }
+}

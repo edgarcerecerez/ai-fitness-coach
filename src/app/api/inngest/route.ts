@@ -9,7 +9,9 @@ import { handleAnalysisError } from '@/lib/inngest/functions/error-handler';
 import { 
   scheduledWithingsSync, 
   manualWithingsSync, 
-  historicalWithingsSync 
+  historicalWithingsSync,
+  webhookWithingsProcess,
+  deviceUpdateScheduled
 } from '@/lib/inngest/withings-sync';
 
 // Conditionally export the routes only if environment variables are available
@@ -27,6 +29,8 @@ if (inngest) {
       scheduledWithingsSync,
       manualWithingsSync,
       historicalWithingsSync,
+      webhookWithingsProcess,
+      deviceUpdateScheduled,
     ],
   });
 } else {

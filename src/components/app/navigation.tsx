@@ -81,7 +81,7 @@ export function AppNavigation({ user }: AppNavigationProps) {
                 <span className="font-medium">{user.email}</span>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/app/profile">
+                <Link href="/app/settings">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Link>

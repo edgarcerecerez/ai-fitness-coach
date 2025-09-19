@@ -1,33 +1,33 @@
 // TypeScript interfaces for Withings integration
 
 export interface WithingsAuthConfig {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  scopes: string[];
+  readonly clientId: string;
+  readonly clientSecret: string;
+  readonly redirectUri: string;
+  readonly scopes: readonly string[];
 }
 
 export interface WithingsTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-  userId: string;
-  scope: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly expiresAt: Date;
+  readonly userId: string;
+  readonly scope: string;
 }
 
 export interface WithingsConnection {
-  id: string;
-  userId: string;
-  withingsUserId: string;
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-  scopes: string[];
-  isActive: boolean;
-  lastSyncAt: Date | null;
-  connectedAt: Date;
-  lastTokenRefreshAt?: Date;
-  refreshFailureCount: number;
+  readonly id: string;
+  readonly userId: string;
+  readonly withingsUserId: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly expiresAt: Date;
+  readonly scopes: readonly string[];
+  readonly isActive: boolean;
+  readonly lastSyncAt: Date | null;
+  readonly connectedAt: Date;
+  readonly lastTokenRefreshAt?: Date;
+  readonly refreshFailureCount: number;
 }
 
 export interface EncryptedData {
@@ -90,25 +90,39 @@ export interface WithingsConnectionEventRecord {
 
 // OAuth flow types
 export interface AuthUrlResponse {
-  authUrl: string;
-  state: string;
-  codeVerifier: string;
+  readonly authUrl: string;
+  readonly state: string;
+  readonly codeVerifier: string;
 }
 
 // API response types
-export interface WithingsApiResponse<T = unknown> {
-  status: number;
-  body?: T;
-  error?: string;
-}
+export type WithingsApiSuccess<T = unknown> = {
+  readonly status: number;
+  readonly ok: true;
+  readonly body: T;
+};
+
+export type WithingsApiFailure = {
+  readonly status: number;
+  readonly ok: false;
+  readonly error: {
+    readonly message: string;
+    readonly code?: string;
+    readonly cause?: unknown;
+  };
+};
+
+export type WithingsApiResponse<T = unknown> =
+  | WithingsApiSuccess<T>
+  | WithingsApiFailure;
 
 // Connection status types
 export interface ConnectionStatus {
-  isConnected: boolean;
-  connectedAt?: Date;
-  lastSyncAt?: Date;
-  withingsUserId?: string;
-  scopes?: string[];
+  readonly isConnected: boolean;
+  readonly connectedAt?: Date;
+  readonly lastSyncAt?: Date;
+  readonly withingsUserId?: string;
+  readonly scopes?: readonly string[];
 }
 
 // Error types
@@ -146,60 +160,61 @@ export class WithingsRateLimitError extends Error {
 // Phase 7.2: Data Sync Types
 
 export interface WithingsMeasurement {
-  id: string;
-  groupId: number;
-  type: number;
-  value: number;
-  unit: number;
-  timestamp: Date;
-  deviceId?: string;
-  category?: number;
-  comment?: string;
+  readonly id: string;
+  readonly groupId: number;
+  readonly type: number;
+  readonly value: number;
+  readonly unit: number;
+  readonly timestamp: Date;
+  readonly deviceId?: string;
+  readonly category?: number;
+  readonly comment?: string;
 }
 
 export interface SyncJobOptions {
-  jobType?: 'manual' | 'webhook' | 'scheduled' | 'historical';
-  startDate?: Date;
-  endDate?: Date;
-  lastUpdate?: Date;
-  measurementTypes?: string[];
-  batchSize?: number;
+  readonly jobType?: 'manual' | 'webhook' | 'scheduled' | 'historical';
+  readonly startDate?: Date;
+  readonly endDate?: Date;
+  readonly lastUpdate?: Date;
+  readonly measurementTypes?: readonly string[];
+  readonly batchSize?: number;
 }
 
 export interface SyncResult {
-  processed: number;
-  synced: number;
-  skipped: number;
+  readonly processed: number;
+  readonly synced: number;
+  readonly skipped: number;
 }
 
 export interface ProcessedMeasurement {
-  weight?: number;
-  height?: number;
-  fatFreeMass?: number;
-  bodyFat?: number;
-  fatMass?: number;
-  muscleMass?: number;
-  hydration?: number;
-  boneMass?: number;
+  readonly weight?: number;
+  readonly height?: number;
+  readonly fatFreeMass?: number;
+  readonly bodyFat?: number;
+  readonly fatMass?: number;
+  readonly muscleMass?: number;
+  readonly hydration?: number;
+  readonly boneMass?: number;
 }
 
-export enum ConflictType {
-  DUPLICATE_MEASUREMENT = 'duplicate_measurement',
-  VALUE_MISMATCH = 'value_mismatch',
-  TIMESTAMP_OVERLAP = 'timestamp_overlap'
-}
+export const ConflictType = {
+  DUPLICATE_MEASUREMENT: 'duplicate_measurement',
+  VALUE_MISMATCH: 'value_mismatch',
+  TIMESTAMP_OVERLAP: 'timestamp_overlap',
+} as const;
+export type ConflictType = typeof ConflictType[keyof typeof ConflictType];
 
 export interface DataConflict {
-  type: ConflictType;
-  existingEntry: {
+  readonly type: ConflictType;
+  readonly existingEntry: {
     readonly id: string;
     readonly weight_kg: number;
     readonly logged_at: string;
     readonly source: string;
   };
-  timeDiff: number;
-  weightDiff: number;
-  severity: 'low' | 'medium' | 'high';
+  readonly timeDiff: number;
+  readonly weightDiff: number;
+  readonly severity: 'low' | 'medium' | 'high';
 }
 
 // Sync job database record types
@@ -251,4 +266,100 @@ export interface WithingsDeviceRecord {
   readonly first_seen_at: string;
   readonly last_seen_at: string;
   readonly is_active: boolean;
+}
+
+// Phase 7.3: Webhook Types
+
+export interface WithingsWebhookNotification {
+  userid: string;
+  appli: number;
+  startdate: number;
+  enddate: number;
+  date: number;
+}
+
+export interface ProcessingResult {
+  processed: number;
+  synced: number;
+  skipped: number;
+}
+
+export interface WithingsDevice {
+  id: string;
+  type: string;
+  model: string;
+  modelId?: number;
+  batteryLevel?: number | string;
+  timezone?: string;
+  lastSessionDate?: Date;
+  features: string[];
+  lastSeenAt?: Date;
+  notificationEnabled?: boolean;
+}
+
+export interface NotificationPayload {
+  title: string;
+  message: string;
+  data?: {
+    type: string;
+    application?: number;
+    synced_count?: number;
+    [key: string]: unknown;
+  };
+}
+
+export interface WithingsWebhookEventRecord {
+  readonly id: string;
+  readonly webhook_id: string;
+  readonly user_id: string;
+  readonly connection_id: string;
+  readonly event_type: string;
+  readonly application: number;
+  readonly start_date: string;
+  readonly end_date: string;
+  readonly notification_date: string;
+  readonly raw_payload: Readonly<Record<string, unknown>>;
+  readonly processing_status: string;
+  readonly processing_attempts: number;
+  readonly max_attempts: number;
+  readonly last_attempt_at?: string;
+  readonly completed_at?: string;
+  readonly error_message?: string;
+  readonly created_at: string;
+}
+
+export interface WithingsNotificationPreferences {
+  readonly id: string;
+  readonly user_id: string;
+  readonly measurement_notifications: boolean;
+  readonly achievement_notifications: boolean;
+  readonly sync_failure_notifications: boolean;
+  readonly notification_methods: readonly string[];
+  readonly quiet_hours_start?: string;
+  readonly quiet_hours_end?: string;
+  readonly timezone: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface UserNotificationToken {
+  readonly id: string;
+  readonly user_id: string;
+  readonly token: string;
+  readonly platform: string;
+  readonly is_active: boolean;
+  readonly last_used_at: string;
+  readonly created_at: string;
+}
+
+export interface WithingsWebhookSubscription {
+  readonly id: string;
+  readonly connection_id: string;
+  readonly withings_subscription_id?: string;
+  readonly application: number;
+  readonly callback_url: string;
+  readonly comment?: string;
+  readonly is_active: boolean;
+  readonly created_at: string;
+  readonly expires_at?: string;
 }

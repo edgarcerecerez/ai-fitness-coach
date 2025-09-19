@@ -13,21 +13,29 @@ export default async function CalorieTracker() {
   } = await supabase.auth.getUser()
 
   // Fetch recent nutrition logs
-  const { data: nutritionLogs } = await supabase
+  const { data: nutritionLogs, error: nutritionError } = await supabase
     .from('nutrition_logs')
     .select('*')
     .eq('user_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(10)
 
+  if (nutritionError) {
+    console.error('Failed to fetch nutrition logs:', nutritionError)
+  }
+
   // Fetch today's nutrition summary
   const today = new Date().toISOString().split('T')[0]
-  const { data: todayNutrition } = await supabase
+  const { data: todayNutrition, error: todayError } = await supabase
     .from('nutrition_logs')
     .select('*')
     .eq('user_id', user!.id)
     .gte('created_at', `${today}T00:00:00`)
     .lte('created_at', `${today}T23:59:59`)
+
+  if (todayError) {
+    console.error('Failed to fetch today\'s nutrition:', todayError)
+  }
 
   return (
     <div className="space-y-8">
