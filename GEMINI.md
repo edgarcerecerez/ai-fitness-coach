@@ -58,9 +58,15 @@ npm run start
 npm run lint
 ```
 
+**7. Testing:**
+
+```bash
+npm test
+```
+
 # Development Conventions
 
 *   **Coding Style:** The project uses ESLint to enforce a consistent coding style. Run `npm run lint` to check for and fix linting errors.
-*   **Testing:** The project uses Jest for testing. (TODO: Add instructions on how to run tests).
-*   **Commits:** (TODO: Add commit message conventions if any).
+*   **Pre-commit Hooks:** The project uses `lint-staged` to run `eslint --fix` on all staged `.js`, `.jsx`, `.ts`, and `.tsx` files before committing.
+*   **Testing:** The project uses Jest for testing. Run `npm test` to run the test suite.
 *   **Database Migrations:** Database schema changes are managed through migration files in the `supabase/migrations` directory.

@@ -54,7 +54,7 @@ export default function HomePage() {
       <section 
         className="py-20 px-4 relative bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/ai-health-training-app.png')"
+          backgroundImage: "url('/images/yoga-pose.png')"
         }}
       >
         {/* Dark overlay to ensure text readability */}

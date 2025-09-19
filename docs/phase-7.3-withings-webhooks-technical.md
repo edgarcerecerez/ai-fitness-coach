@@ -157,27 +157,24 @@ This phase implements real-time data synchronization through Withings webhooks, 
 src/
 ├── lib/
 │   ├── withings/
-│   │   ├── webhook-processor.ts   # ✅ Process webhook notifications
-│   │   ├── webhook-security.ts    # ✅ Signature validation
-│   │   ├── device-manager.ts      # ✅ Device discovery and management
-│   │   └── notification-service.ts # ✅ Push notifications (stubbed)
-│   ├── queue/                      # ❌ NOT IMPLEMENTED
-│   │   ├── webhook-queue.ts       # ❌ Message queue for webhooks
-│   │   ├── dead-letter-queue.ts   # ❌ Failed message handling
-│   │   └── retry-handler.ts       # ❌ Retry logic with backoff
-│   └── notifications/              # ❌ NOT IMPLEMENTED
-│       └── push-service.ts        # ❌ Push notification service
+│   │   ├── webhook-processor.ts           # ✅ Processes webhook notifications via sync engine
+│   │   ├── webhook-security.ts            # ✅ HMAC validation and payload guards
+│   │   ├── device-manager.ts              # ✅ Device discovery, refresh, and toggle logic
+│   │   ├── notification-service.ts        # ✅ Preferences, quiet hours, token registry (push stubs)
+│   │   └── types.ts                       # ✅ Shared type definitions
+│   └── utils/date.ts                      # ✅ Shared formatting utilities for UI components
+├── lib/inngest/withings-sync.ts           # ✅ Inngest functions (scheduled, manual, historical, webhook, device refresh)
 ├── app/api/
-│   ├── webhooks/
-│   │   └── withings/route.ts      # ✅ Webhook receiver endpoint
+│   ├── webhooks/withings/route.ts         # ✅ Webhook receiver with signature validation and fallback processing
 │   └── integrations/withings/
-│       ├── devices/route.ts       # ✅ Device management
-│       ├── sync-history/route.ts  # ✅ Sync job history
-│       └── notifications/route.ts # ❌ Notification preferences
-└── components/
-    └── settings/
-        ├── withings-devices.tsx     # ❌ Device list and management
-        └── notification-settings.tsx # ❌ Notification preferences
+│       ├── devices/route.ts               # ✅ Device management API (list/refresh/toggle)
+│       ├── sync-history/route.ts          # ✅ Sync job history API
+│       └── notifications/route.ts         # ✅ Notification preference and token API
+├── app/app/settings/page.tsx              # ✅ Settings surface hosting Withings sections
+└── components/settings/
+    ├── withings-connection.tsx            # ✅ Connection card with OAuth handling
+    ├── withings-devices.tsx               # ✅ Device management UI
+    └── withings-notification-settings.tsx # ✅ Notification preferences UI
 ```
 
 ## Database Schema Extensions
@@ -1127,128 +1124,10 @@ export async function POST(request: NextRequest) {
 ## Message Queue Implementation
 
 ### 1. Inngest Webhook Functions
-❌ **NOT IMPLEMENTED** - Planned webhook processing functions missing, only scheduled sync exists
+✅ **IMPLEMENTED** – Webhook processing, scheduled sync, manual sync, historical sync, and device refresh are consolidated in `src/lib/inngest/withings-sync.ts`. Each function uses `step.run` instrumentation, structured logging, and falls back to inline processing from the API route if the Inngest client is unavailable.
 
-```typescript
-// src/lib/inngest/withings-webhooks.ts
-import { inngest } from '@/lib/inngest/client';
-import { WithingsWebhookProcessor } from '@/lib/withings/webhook-processor';
-
-// Primary webhook processing function
-export const webhookWithingsProcess = inngest.createFunction(
-  { id: 'webhook-withings-process' },
-  { event: 'withings/webhook.received' },
-  async ({ event, step }) => {
-    const { webhookId, payload } = event.data;
-    const processor = new WithingsWebhookProcessor();
-
-    // Step 1: Validate and log webhook
-    const eventId = await step.run('log-webhook-event', async () => {
-      return processor.logWebhookEvent(webhookId, payload);
-    });
-
-    // Step 2: Process webhook data
-    const result = await step.run('process-webhook-data', async () => {
-      return processor.processWebhook(webhookId, payload);
-    });
-
-    // Step 3: Send user notifications
-    await step.run('send-notifications', async () => {
-      return processor.sendNotifications(eventId, result);
-    });
-
-    return { webhookId, eventId, result };
-  }
-);
-
-// Device update function
-export const deviceUpdateScheduled = inngest.createFunction(
-  { id: 'device-update-scheduled' },
-  { cron: '0 */6 * * *' }, // Every 6 hours
-  async ({ step }) => {
-    const deviceManager = new WithingsDeviceManager();
-    
-    const activeConnections = await step.run('get-active-connections', async () => {
-      return deviceManager.getActiveConnections();
-    });
-
-    const results = await step.run('update-all-devices', async () => {
-      return Promise.allSettled(
-        activeConnections.map(conn => 
-          deviceManager.updateDevicesForUser(conn.user_id)
-        )
-      );
-    });
-
-    return { processed: activeConnections.length, results };
-  }
-);
-```
-
-### 2. Webhook Message Queue (Fallback)
-❌ **NOT IMPLEMENTED** - Dedicated queue classes not created, webhook endpoint has basic fallback
-
-```typescript
-// src/lib/queue/webhook-queue.ts  
-export class WithingsWebhookQueue {
-  private static instance: WithingsWebhookQueue;
-  private processor: WithingsWebhookProcessor;
-
-  constructor() {
-    this.processor = new WithingsWebhookProcessor();
-  }
-
-  static getInstance(): WithingsWebhookQueue {
-    if (!WithingsWebhookQueue.instance) {
-      WithingsWebhookQueue.instance = new WithingsWebhookQueue();
-    }
-    return WithingsWebhookQueue.instance;
-  }
-
-  /**
-   * Enqueue webhook for processing
-   */
-  async enqueue(webhookId: string, payload: any): Promise<void> {
-    // In production, use Redis, Bull, or similar queue system
-    // For now, process immediately in background
-    this.processInBackground(webhookId, payload);
-  }
-
-  /**
-   * Process webhook in background
-   */
-  private async processInBackground(webhookId: string, payload: any): Promise<void> {
-    try {
-      await this.processor.processWebhook(webhookId, payload);
-    } catch (error) {
-      console.error(`Background processing failed for ${webhookId}:`, error);
-      
-      // Add to dead letter queue for retry
-      await this.addToDeadLetterQueue(webhookId, payload, error);
-    }
-  }
-
-  /**
-   * Add failed webhook to dead letter queue
-   */
-  private async addToDeadLetterQueue(
-    webhookId: string, 
-    payload: any, 
-    error: any
-  ): Promise<void> {
-    const { supabase } = await import('@/utils/supabase/server');
-    
-    await supabase
-      .from('withings_webhook_events')
-      .update({
-        processing_status: 'failed',
-        error_message: error.message,
-        processing_attempts: 1 // Increment in real implementation
-      })
-      .eq('webhook_id', webhookId);
-  }
-}
-```
+### 2. Webhook Message Queue (Plan Deviation)
+⚠️ **DEVIATION** – The project originally scoped bespoke `lib/queue/*` classes with a dead-letter queue. In practice, Inngest delivered the required durability, retries, and observability, so no additional queue module was created. Future queue work should only proceed if Inngest proves insufficient for advanced backoff scenarios.
 
 ## Webhook Subscription Management
 ❌ **NOT IMPLEMENTED** - Webhook subscription setup/teardown logic missing
