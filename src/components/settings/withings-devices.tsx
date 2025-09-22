@@ -10,11 +10,11 @@ import type { WithingsDevice } from '@/lib/withings/types';
 import { formatDateTime } from '@/lib/utils/date';
 
 interface WithingsDevicesProps {
-  isConnected: boolean;
+  readonly isConnected: boolean;
 }
 
 interface DeviceState extends WithingsDevice {
-  notificationEnabled: boolean;
+  readonly notificationEnabled: boolean;
 }
 
 const DEVICE_LABELS: Record<string, string> = {

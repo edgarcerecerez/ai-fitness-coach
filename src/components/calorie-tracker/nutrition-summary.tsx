@@ -6,18 +6,18 @@ import { Badge } from '@/components/ui/badge'
 import { Zap, Target, Award } from 'lucide-react'
 
 interface NutritionLog {
-  id: string
-  total_calories: number | null
-  total_protein_g: number | null
-  total_carbs_g: number | null
-  total_fat_g: number | null
-  total_fiber_g: number | null
-  confidence_score: number | null
-  created_at: string
+  readonly id: string
+  readonly total_calories: number | null
+  readonly total_protein_g: number | null
+  readonly total_carbs_g: number | null
+  readonly total_fat_g: number | null
+  readonly total_fiber_g: number | null
+  readonly confidence_score: number | null
+  readonly created_at: string
 }
 
 interface NutritionSummaryProps {
-  data: NutritionLog[]
+  readonly data: readonly NutritionLog[]
 }
 
 export function NutritionSummary({ data }: NutritionSummaryProps) {

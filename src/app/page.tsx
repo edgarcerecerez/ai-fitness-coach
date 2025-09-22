@@ -52,17 +52,13 @@ export default function HomePage() {
       <section className="py-20 relative overflow-hidden">
         {/* Background Video */}
         <video
-          className="absolute inset-0 w-full h-full object-fill"
-          style={{
-            transform: 'scale(1.1) translateX(-2%)',
-            transformOrigin: 'center center'
-          }}
+          className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           muted
           loop
           playsInline
         >
-          <source src="/images/working-out-loop.mp4" type="video/mp4" />
+          <source src="/images/workout-background.mp4" type="video/mp4" />
         </video>
         {/* Lighter overlay to ensure text readability */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(10,16,30,0.6),rgba(12,18,33,0.5)_45%,rgba(4,7,16,0.65)_100%)]"></div>

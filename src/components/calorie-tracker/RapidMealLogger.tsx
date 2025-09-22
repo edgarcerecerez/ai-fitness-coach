@@ -267,9 +267,14 @@ export const RapidMealLogger: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
+          const result = reader.result;
+          const base64Payload = typeof result === 'string'
+            ? result.split(',')[1] ?? null
+            : null;
+
           const signedUrl = await syncService?.queuePhotoUpload({
             fileName: photo.name,
-            base64: reader.result?.toString().split(',')[1],
+            base64: base64Payload ?? undefined,
             mimeType: photo.type,
             user_id: user.id // Use actual authenticated user ID
           });

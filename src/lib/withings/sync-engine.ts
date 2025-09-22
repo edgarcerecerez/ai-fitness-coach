@@ -10,6 +10,8 @@ import {
   WithingsMeasureGroup,
   DataConflict
 } from './types';
+import { BodyCompositionAnalyzer } from './body-composition-analyzer';
+import { HealthTrendAnalyzer } from './health-trend-analyzer';
 import { apiLogger } from '@/lib/logger';
 import { createClient } from '@/utils/supabase/server';
 
@@ -18,12 +20,16 @@ export class WithingsSyncEngine {
   private connectionService: WithingsConnectionService;
   private measurementProcessor: MeasurementProcessor;
   private conflictResolver: ConflictResolver;
+  private bodyCompositionAnalyzer: BodyCompositionAnalyzer;
+  private trendAnalyzer: HealthTrendAnalyzer;
 
   constructor() {
     this.apiClient = new WithingsApiClient();
     this.connectionService = new WithingsConnectionService();
     this.measurementProcessor = new MeasurementProcessor();
     this.conflictResolver = new ConflictResolver();
+    this.bodyCompositionAnalyzer = new BodyCompositionAnalyzer();
+    this.trendAnalyzer = new HealthTrendAnalyzer();
   }
 
   /**
@@ -79,7 +85,16 @@ export class WithingsSyncEngine {
 
       // Update connection last sync time
       await this.connectionService.updateLastSync(userId);
-      
+
+      try {
+        await this.trendAnalyzer.analyzeHealthTrends(userId);
+      } catch (trendError) {
+        apiLogger.error('Failed to update Withings health trends', {
+          userId,
+          error: trendError instanceof Error ? trendError.message : String(trendError)
+        });
+      }
+
       apiLogger.info('Sync job completed successfully', {
         syncJobId,
         userId,
@@ -180,16 +195,33 @@ export class WithingsSyncEngine {
     let synced = 0;
     let skipped = 0;
 
-    for (const measurement of measurements) {
+    const sessions = this.measurementProcessor.groupMeasurementsBySession(measurements);
+
+    for (const sessionMeasurements of sessions.values()) {
+      let measurementRecord: WithingsMeasurement | null = null;
       try {
-        // Check if measurement already exists
-        const existing = await this.measurementProcessor.findExisting(
-          userId, 
-          measurement.id
-        );
+        const aggregation = this.measurementProcessor.aggregateSessionMeasurements(sessionMeasurements);
+
+        if (!aggregation) {
+          skipped++;
+          continue;
+        }
+
+        const existing = await this.measurementProcessor.findExisting(userId, aggregation.groupId);
+        measurementRecord = {
+          id: aggregation.measurementId,
+          groupId: aggregation.groupId,
+          type: 1,
+          value: aggregation.processed.weight ?? 0,
+          unit: 0,
+          timestamp: aggregation.timestamp,
+          deviceId: aggregation.deviceId,
+          category: aggregation.category,
+          comment: aggregation.comment
+        };
 
         if (existing) {
-          await this.logSyncDetail(syncJobId, measurement, 'skipped', 'Already exists');
+          await this.logSyncDetail(syncJobId, measurementRecord, 'skipped', 'Already exists');
           skipped++;
           continue;
         }
@@ -197,32 +229,34 @@ export class WithingsSyncEngine {
         // Check for conflicts with manual entries
         const conflicts = await this.conflictResolver.checkForConflicts(
           userId, 
-          measurement
+          measurementRecord
         );
 
         if (conflicts.length > 0) {
-          await this.handleConflicts(syncJobId, userId, measurement, conflicts);
+          await this.handleConflicts(syncJobId, userId, measurementRecord, conflicts);
           skipped++;
         } else {
-          await this.measurementProcessor.saveMeasurement(userId, measurement);
-          await this.logSyncDetail(syncJobId, measurement, 'processed', 'Successfully synced');
+          const weightLogId = await this.measurementProcessor.saveAggregatedMeasurement(userId, aggregation);
+          await this.bodyCompositionAnalyzer.analyzeComposition(userId, weightLogId, aggregation.rawData);
+          await this.logSyncDetail(syncJobId, measurementRecord, 'processed', 'Successfully synced');
           synced++;
         }
 
         processed++;
 
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         apiLogger.error('Failed to process measurement', {
           syncJobId,
-          measurementId: measurement.id,
-          error: error instanceof Error ? error.message : String(error)
+          measurementGroupId: measurementRecord?.groupId ?? sessionMeasurements[0]?.groupId,
+          error: message
         });
         
         await this.logSyncDetail(
           syncJobId, 
-          measurement, 
+          measurementRecord ?? sessionMeasurements[0], 
           'error', 
-          error instanceof Error ? error.message : String(error)
+          message
         );
         processed++;
       }

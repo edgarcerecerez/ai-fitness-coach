@@ -1,6 +1,10 @@
 import crypto from 'crypto';
 import { WithingsWebhookNotification } from './types';
 
+const isWebhookNotification = (value: unknown): value is Partial<WithingsWebhookNotification> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
 export class WithingsWebhookSecurity {
   private readonly clientSecret: string;
 
@@ -52,9 +56,7 @@ export class WithingsWebhookSecurity {
    */
   validatePayload(payload: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const data = (typeof payload === 'object' && payload !== null)
-      ? payload as Partial<WithingsWebhookNotification>
-      : {};
+    const data = isWebhookNotification(payload) ? payload : {};
 
     if (!data?.userid) {
       errors.push('Missing userid');

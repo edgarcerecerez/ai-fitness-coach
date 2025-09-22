@@ -10,7 +10,11 @@ import { Upload, X, Loader2 } from 'lucide-react'
 import { logError } from '@/lib/logger'
 import Image from 'next/image'
 
-export function PhotoUpload() {
+interface PhotoUploadProps {
+  readonly onUploadComplete?: (log: unknown) => void
+}
+
+export function PhotoUpload({ onUploadComplete }: PhotoUploadProps = {}) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -113,12 +117,11 @@ export function PhotoUpload() {
         fileInputRef.current.value = ''
       }
 
-      // Refresh the page to show new meal
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
+      if (onUploadComplete) {
+        onUploadComplete(nutritionLog)
+      }
 
-    } catch (error) {
+    } catch (error: unknown) {
       logError(error, 'photo_upload')
       setMessage({ 
         type: 'error', 

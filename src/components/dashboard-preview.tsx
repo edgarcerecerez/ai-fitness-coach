@@ -59,9 +59,9 @@ type ChartProps = {
   variant?: ChartVariant
 }
 
-const glassCardClasses = "relative overflow-hidden border border-white/15 bg-white/10 text-white/90 backdrop-blur-2xl shadow-[0_30px_80px_rgba(15,23,42,0.4)]"
-const glassTileWrapper = "relative flex w-full items-center justify-center overflow-hidden rounded-[26px] border border-white/15 bg-white/10 p-4 shadow-[0_25px_65px_rgba(15,23,42,0.35)] backdrop-blur-xl"
-const glassTileWrapperCompact = "relative flex w-full items-center justify-center overflow-hidden rounded-[22px] border border-white/15 bg-white/10 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.3)] backdrop-blur-xl"
+const glassCardClasses = "relative overflow-hidden border border-white/15 bg-white/10 text-foreground backdrop-blur-2xl shadow-[0_30px_80px_rgba(15,23,42,0.4)]"
+const glassTileWrapper = "relative flex w-full items-center justify-center overflow-hidden rounded-[26px] border border-white/15 bg-white/10 p-4 shadow-[0_25px_65px_rgba(15,23,42,0.35)] backdrop-blur-xl [&_.recharts-line]:stroke-[hsl(var(--chart-1))] [&_.recharts-line[stroke='var(--color-target)']]:stroke-[hsl(var(--chart-2))]"
+const glassTileWrapperCompact = "relative flex w-full items-center justify-center overflow-hidden rounded-[22px] border border-white/15 bg-white/10 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.3)] backdrop-blur-xl [&_.recharts-bar]:fill-[hsl(var(--chart-3))] [&_.recharts-line]:stroke-[hsl(var(--chart-5))] [&_.recharts-line[stroke='var(--color-sleep)']]:stroke-[hsl(var(--chart-1))]"
 
 export function WeightProgressChart({ variant = "default" }: ChartProps = {}) {
   const isGlass = variant === "glass"
@@ -77,15 +77,15 @@ export function WeightProgressChart({ variant = "default" }: ChartProps = {}) {
           color: "hsl(var(--chart-2))",
         },
       }}
-      className="h-[250px] w-full">
+      className="h-[250px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-muted-foreground/30">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={weightData}>
-          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} />
           <YAxis
             domain={["dataMin - 2", "dataMax + 2"]}
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
           />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Line
@@ -110,10 +110,10 @@ export function WeightProgressChart({ variant = "default" }: ChartProps = {}) {
 
   return (
     <Card className={cn("border-0 shadow-sm", isGlass && glassCardClasses)}>
-      <CardHeader className={cn("pb-3", isGlass && "px-8 pb-6 text-left text-white/80")}>
+      <CardHeader className={cn("pb-3", isGlass && "px-8 pb-6 text-left text-muted-foreground")}>
         <div className="flex items-center justify-between">
-          <CardTitle className={cn("text-base font-medium", isGlass && "text-white")}>Weight Progress</CardTitle>
-          <div className={cn("flex items-center text-sm", isGlass ? "text-emerald-300" : "text-green-600")}>
+          <CardTitle className={cn("text-base font-medium", isGlass && "text-foreground")}>Weight Progress</CardTitle>
+          <div className={cn("flex items-center text-sm", isGlass ? "text-green-600" : "text-green-600")}>
             <TrendingDown className="w-4 h-4 mr-1" />
             -22 lbs
           </div>
@@ -122,8 +122,8 @@ export function WeightProgressChart({ variant = "default" }: ChartProps = {}) {
       <CardContent className={cn("pt-0", isGlass && "px-8 pb-8")}>
         {isGlass ? <div className={glassTileWrapper}>{chart}</div> : chart}
         <div className={cn(
-          "mt-3 flex items-center justify-between text-xs text-slate-600",
-          isGlass && "mt-6 text-sm text-white/70"
+          "mt-3 flex items-center justify-between text-xs text-muted-foreground",
+          isGlass && "mt-6 text-sm text-muted-foreground"
         )}>
           <span>Current: 173 lbs</span>
           <span className="flex items-center">
@@ -150,10 +150,10 @@ export function CalorieIntakeChart({ variant = "default" }: ChartProps = {}) {
           color: "hsl(var(--chart-4))",
         },
       }}
-      className="h-[120px] w-full">
+      className="h-[120px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-muted-foreground/30">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={calorieData}>
-          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--foreground))' }} />
           <YAxis hide />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="calories" fill="var(--color-calories)" radius={[2, 2, 0, 0]} />
@@ -164,14 +164,14 @@ export function CalorieIntakeChart({ variant = "default" }: ChartProps = {}) {
 
   return (
     <Card className={cn("border-0 shadow-sm", isGlass && glassCardClasses)}>
-      <CardHeader className={cn("pb-3", isGlass && "px-6 pb-5 text-left text-white/80")}>
-        <CardTitle className={cn("text-sm font-medium", isGlass && "text-white")}>Weekly Calories</CardTitle>
+      <CardHeader className={cn("pb-3", isGlass && "px-6 pb-5 text-left text-muted-foreground")}>
+        <CardTitle className={cn("text-sm font-medium", isGlass && "text-foreground")}>Weekly Calories</CardTitle>
       </CardHeader>
       <CardContent className={cn("pt-0", isGlass && "px-6 pb-6")}>
         {isGlass ? <div className={glassTileWrapperCompact}>{chart}</div> : chart}
         <div className={cn(
-          "mt-2 text-xs text-slate-600 text-center",
-          isGlass && "mt-4 text-sm text-white/70"
+          "mt-2 text-xs text-muted-foreground text-center",
+          isGlass && "mt-4 text-sm text-muted-foreground"
         )}>
           Avg: 2,050 cal/day
         </div>
@@ -194,10 +194,10 @@ export function MoodSleepChart({ variant = "default" }: ChartProps = {}) {
           color: "hsl(var(--chart-1))",
         },
       }}
-      className="h-[120px] w-full">
+      className="h-[120px] w-full [&_.recharts-cartesian-axis-tick_text]:fill-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-muted-foreground/30">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={moodSleepData}>
-          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--foreground))' }} />
           <YAxis hide />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Line
@@ -221,14 +221,14 @@ export function MoodSleepChart({ variant = "default" }: ChartProps = {}) {
 
   return (
     <Card className={cn("border-0 shadow-sm", isGlass && glassCardClasses)}>
-      <CardHeader className={cn("pb-3", isGlass && "px-6 pb-5 text-left text-white/80")}>
-        <CardTitle className={cn("text-sm font-medium", isGlass && "text-white")}>Mood & Sleep</CardTitle>
+      <CardHeader className={cn("pb-3", isGlass && "px-6 pb-5 text-left text-muted-foreground")}>
+        <CardTitle className={cn("text-sm font-medium", isGlass && "text-foreground")}>Mood & Sleep</CardTitle>
       </CardHeader>
       <CardContent className={cn("pt-0", isGlass && "px-6 pb-6")}>
         {isGlass ? <div className={glassTileWrapperCompact}>{chart}</div> : chart}
         <div className={cn(
-          "mt-2 flex items-center justify-between text-xs text-slate-600",
-          isGlass && "mt-4 text-sm text-white/70"
+          "mt-2 flex items-center justify-between text-xs text-muted-foreground",
+          isGlass && "mt-4 text-sm text-muted-foreground"
         )}>
           <span className="flex items-center">
             <Smile className="w-3 h-3 mr-1" />

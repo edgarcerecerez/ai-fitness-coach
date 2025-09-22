@@ -8,6 +8,24 @@ const mockEnv = {
   WITHINGS_REDIRECT_URI: 'http://localhost:3000/callback'
 };
 
+type FetchMock = jest.MockedFunction<typeof fetch>;
+
+const installFetchMock = () => {
+  const originalFetch = global.fetch;
+  // @ts-expect-error In the test environment we intentionally override the global fetch implementation.
+  global.fetch = jest.fn() as unknown as typeof fetch;
+
+  const restore = () => {
+    // @ts-expect-error Restore the original fetch after the test completes.
+    global.fetch = originalFetch;
+  };
+
+  return {
+    mock: global.fetch as unknown as FetchMock,
+    restore,
+  };
+};
+
 describe('WithingsAuthService', () => {
   let authService: WithingsAuthService;
   const originalEnv = process.env;
@@ -66,20 +84,15 @@ describe('WithingsAuthService', () => {
   });
 
   describe('exchangeCodeForTokens', () => {
+    let fetchController: ReturnType<typeof installFetchMock>;
+
     beforeEach(() => {
-      // Preserve and stub fetch
-      // @ts-expect-error test env
-      if (!('__origFetch__' in global)) {
-        // @ts-expect-error test env
-        (global as any).__origFetch__ = global.fetch;
-      }
-      global.fetch = jest.fn();
+      fetchController = installFetchMock();
     });
 
     afterEach(() => {
       jest.restoreAllMocks();
-      // @ts-expect-error test env
-      global.fetch = (global as any).__origFetch__;
+      fetchController.restore();
     });
 
     it('should successfully exchange code for tokens', async () => {
@@ -94,7 +107,7 @@ describe('WithingsAuthService', () => {
         }
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      fetchController.mock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
@@ -114,7 +127,7 @@ describe('WithingsAuthService', () => {
         error: 'invalid_grant'
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      fetchController.mock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
@@ -125,7 +138,7 @@ describe('WithingsAuthService', () => {
     });
 
     it('should handle network error', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      fetchController.mock.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(
         authService.exchangeCodeForTokens('test_code', 'test_verifier')
@@ -134,20 +147,15 @@ describe('WithingsAuthService', () => {
   });
 
   describe('refreshToken', () => {
+    let fetchController: ReturnType<typeof installFetchMock>;
+
     beforeEach(() => {
-      // Preserve and stub fetch
-      // @ts-expect-error test env
-      if (!('__origFetch__' in global)) {
-        // @ts-expect-error test env
-        (global as any).__origFetch__ = global.fetch;
-      }
-      global.fetch = jest.fn();
+      fetchController = installFetchMock();
     });
 
     afterEach(() => {
       jest.restoreAllMocks();
-      // @ts-expect-error test env
-      global.fetch = (global as any).__origFetch__;
+      fetchController.restore();
     });
 
     it('should successfully refresh tokens', async () => {
@@ -162,7 +170,7 @@ describe('WithingsAuthService', () => {
         }
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      fetchController.mock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
@@ -180,7 +188,7 @@ describe('WithingsAuthService', () => {
         error: 'invalid_grant'
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      fetchController.mock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
@@ -192,20 +200,15 @@ describe('WithingsAuthService', () => {
   });
 
   describe('revokeToken', () => {
+    let fetchController: ReturnType<typeof installFetchMock>;
+
     beforeEach(() => {
-      // Preserve and stub fetch
-      // @ts-expect-error test env
-      if (!('__origFetch__' in global)) {
-        // @ts-expect-error test env
-        (global as any).__origFetch__ = global.fetch;
-      }
-      global.fetch = jest.fn();
+      fetchController = installFetchMock();
     });
 
     afterEach(() => {
       jest.restoreAllMocks();
-      // @ts-expect-error test env
-      global.fetch = (global as any).__origFetch__;
+      fetchController.restore();
     });
 
     it('should successfully revoke token', async () => {
@@ -213,7 +216,7 @@ describe('WithingsAuthService', () => {
         status: 0
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      fetchController.mock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
@@ -229,7 +232,7 @@ describe('WithingsAuthService', () => {
         error: 'invalid_token'
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      fetchController.mock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });

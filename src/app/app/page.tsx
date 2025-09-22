@@ -10,31 +10,69 @@ import {
 import { Camera, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { redirect } from 'next/navigation'
+
+type NutritionLog = {
+  readonly id: string
+  readonly created_at: string
+  readonly total_calories: number | null
+  readonly food_items?: unknown
+  readonly image_url?: string | null
+  readonly confidence_score?: number | null
+}
+
+const calculateTodaysCalories = (logs: readonly NutritionLog[]): number => {
+  if (logs.length === 0) {
+    return 0
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return logs.reduce((total, log) => {
+    const logDate = new Date(log.created_at)
+    logDate.setHours(0, 0, 0, 0)
+
+    if (logDate.getTime() === today.getTime()) {
+      return total + (log.total_calories ?? 0)
+    }
+
+    return total
+  }, 0)
+}
 
 export default async function AppDashboard() {
   const supabase = await createClient()
   
   const {
     data: { user },
+    error: authError
   } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    redirect('/login')
+  }
+
+  const userId = user.id
 
   // Fetch user profile and recent data
   const [profileResult, recentNutritionResult] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('*')
-      .eq('id', user!.id)
+      .eq('id', userId)
       .single(),
     supabase
       .from('nutrition_logs')
       .select('*')
-      .eq('user_id', user!.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(5)
   ])
 
   const profile = profileResult.data
-  const recentNutrition = recentNutritionResult.data || []
+  const recentNutrition = (recentNutritionResult.data || []) as NutritionLog[]
+  const todaysCalories = calculateTodaysCalories(recentNutrition)
 
   return (
     <div className="space-y-8">
@@ -64,16 +102,7 @@ export default async function AppDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {recentNutrition.length > 0 ? 
-                recentNutrition
-                  .filter(log => {
-                    const today = new Date().toDateString()
-                    const logDate = new Date(log.created_at).toDateString()
-                    return today === logDate
-                  })
-                  .reduce((sum, log) => sum + (log.total_calories || 0), 0)
-                : 0
-              }
+              {todaysCalories}
             </div>
             <p className="text-xs text-gray-500 mt-1">
               {recentNutrition.length} meals logged

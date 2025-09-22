@@ -1,6 +1,6 @@
 // Extended interface for ServiceWorkerRegistration with sync support
 interface ServiceWorkerRegistrationWithSync extends ServiceWorkerRegistration {
-  sync?: {
+  readonly sync?: {
     register(tag: string): Promise<void>;
     getTags(): Promise<string[]>;
   };

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { apiLogger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +38,9 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Failed to fetch sync history:', error);
+      apiLogger.error('Failed to fetch sync history', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return NextResponse.json(
         { error: 'Failed to fetch sync history' },
         { status: 500 }
@@ -51,11 +54,12 @@ export async function GET(request: NextRequest) {
       .eq('connection.user_id', profile.id);
 
     if (countError) {
-      console.error('Failed to get sync history count:', countError);
+      apiLogger.error('Failed to get sync history count', {
+        error: countError instanceof Error ? countError.message : String(countError)
+      });
     }
 
-    return NextResponse.json({
-      jobs: jobs.map(job => ({
+    const jobRecords = (jobs ?? []).map(job => ({
         id: job.id,
         type: job.job_type,
         status: job.status,
@@ -75,7 +79,10 @@ export async function GET(request: NextRequest) {
         startDate: job.start_date,
         endDate: job.end_date,
         inngestEventId: job.inngest_event_id
-      })),
+      }));
+
+    return NextResponse.json({
+      jobs: jobRecords,
       pagination: {
         total: totalCount || 0,
         limit,
@@ -84,7 +91,9 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Sync history API error:', error);
+    apiLogger.error('Sync history API error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

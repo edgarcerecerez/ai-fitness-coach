@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { apiLogger } from '@/lib/logger';
 
 type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'super_active';
 type WeightGoal = 'lose' | 'maintain' | 'gain';
@@ -13,6 +14,17 @@ interface ValidatedGoals {
   readonly activity_level?: ActivityLevel;
   readonly weight_goal?: WeightGoal;
 }
+
+const validActivityLevels: readonly ActivityLevel[] = ['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'super_active'];
+const validWeightGoals: readonly WeightGoal[] = ['lose', 'maintain', 'gain'];
+
+const isActivityLevel = (value: unknown): value is ActivityLevel => {
+  return typeof value === 'string' && validActivityLevels.includes(value as ActivityLevel);
+};
+
+const isWeightGoal = (value: unknown): value is WeightGoal => {
+  return typeof value === 'string' && validWeightGoals.includes(value as WeightGoal);
+};
 
 function validateGoalsRequest(body: unknown): { data?: ValidatedGoals; error?: string } {
   if (!body || typeof body !== 'object') {
@@ -45,19 +57,16 @@ function validateGoalsRequest(body: unknown): { data?: ValidatedGoals; error?: s
     }
   }
 
-  const validActivityLevels: readonly ActivityLevel[] = ['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'super_active'];
-  if (activity_level !== undefined) {
-    if (typeof activity_level !== 'string' || !validActivityLevels.includes(activity_level as ActivityLevel)) {
-      return { error: 'Invalid activity_level. Must be one of: ' + validActivityLevels.join(', ') };
-    }
+  if (activity_level !== undefined && !isActivityLevel(activity_level)) {
+    return { error: 'Invalid activity_level. Must be one of: ' + validActivityLevels.join(', ') };
   }
 
-  const validWeightGoals: readonly WeightGoal[] = ['lose', 'maintain', 'gain'];
-  if (weight_goal !== undefined) {
-    if (typeof weight_goal !== 'string' || !validWeightGoals.includes(weight_goal as WeightGoal)) {
-      return { error: 'Invalid weight_goal. Must be one of: ' + validWeightGoals.join(', ') };
-    }
+  if (weight_goal !== undefined && !isWeightGoal(weight_goal)) {
+    return { error: 'Invalid weight_goal. Must be one of: ' + validWeightGoals.join(', ') };
   }
+
+  const parsedActivityLevel = isActivityLevel(activity_level) ? activity_level : undefined;
+  const parsedWeightGoal = isWeightGoal(weight_goal) ? weight_goal : undefined;
 
   return {
     data: {
@@ -66,8 +75,8 @@ function validateGoalsRequest(body: unknown): { data?: ValidatedGoals; error?: s
       daily_carbs_goal_g: daily_carbs_goal_g as number,
       daily_fat_goal_g: daily_fat_goal_g as number,
       daily_fiber_goal_g: daily_fiber_goal_g as number,
-      activity_level: activity_level as ActivityLevel | undefined,
-      weight_goal: weight_goal as WeightGoal | undefined,
+      activity_level: parsedActivityLevel,
+      weight_goal: parsedWeightGoal,
     }
   };
 }
@@ -92,7 +101,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ goals });
 
   } catch (error: unknown) {
-    console.error('Get goals API error:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
+    apiLogger.error('Get goals API error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -133,7 +144,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ goals });
 
   } catch (error: unknown) {
-    console.error('Update goals API error:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
+    apiLogger.error('Update goals API error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

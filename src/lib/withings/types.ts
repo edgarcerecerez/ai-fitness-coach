@@ -396,3 +396,164 @@ export interface WithingsWebhookSubscription {
   readonly created_at: string;
   readonly expires_at?: string;
 }
+
+// Phase 7.4: Advanced analytics & insights types
+
+export interface BodyCompositionData {
+  readonly weight_kg: number;
+  readonly body_fat_percentage?: number | null;
+  readonly muscle_mass_kg?: number | null;
+  readonly bone_mass_kg?: number | null;
+  readonly water_percentage?: number | null;
+  readonly visceral_fat_level?: number | null;
+  readonly measurement_quality_score?: number | null;
+  readonly data_completeness_score?: number | null;
+}
+
+export type GenderIdentity = 'male' | 'female' | 'other' | 'prefer_not_to_say';
+
+export interface BiometricProfile {
+  readonly age: number;
+  readonly gender: GenderIdentity;
+  readonly height_m: number;
+  readonly activity_level?: string | null;
+}
+
+export interface HydrationAssessment {
+  readonly level: 'Optimal' | 'Adequate' | 'Dehydrated' | 'Unknown';
+  readonly value: number | null;
+  readonly recommendedRange?: {
+    readonly min: number;
+    readonly max: number;
+  };
+  readonly recommendation?: string;
+}
+
+export interface HealthMetrics {
+  readonly bmi: {
+    readonly value: number;
+    readonly category: string;
+    readonly health_risk: string;
+  };
+  readonly bodyFatMass: number | null;
+  readonly leanBodyMass: number | null;
+  readonly metabolicAge?: number | null;
+  readonly visceralFatLevel?: number | null;
+  readonly healthyWeightRange: {
+    readonly min: number;
+    readonly max: number;
+  };
+  readonly targetBodyFatRange: {
+    readonly min: number;
+    readonly max: number;
+  };
+  readonly muscleFatRatio?: number | null;
+  readonly boneDensityIndicator?: number | null;
+  readonly hydrationStatus?: HydrationAssessment | null;
+  readonly weightKg?: number;
+  readonly bodyFatPercentage?: number | null;
+  readonly muscleMassKg?: number | null;
+}
+
+export type TrendPeriod = 'weekly' | 'monthly' | 'quarterly';
+export type MetricType = 'weight' | 'body_fat' | 'muscle_mass' | 'bmi';
+export type TrendDirection = 'up' | 'down' | 'stable';
+export type HealthImpact = 'positive' | 'negative' | 'neutral';
+
+export interface TrendAnalysis {
+  readonly userId: string;
+  readonly metricType: MetricType;
+  readonly trendPeriod: TrendPeriod;
+  readonly analysisDate: Date;
+  readonly startValue: number;
+  readonly endValue: number;
+  readonly changeAbsolute: number;
+  readonly changePercentage: number;
+  readonly trendDirection: TrendDirection;
+  readonly trendStrength: number;
+  readonly dataPointsCount: number;
+  readonly standardDeviation: number;
+  readonly correlationCoefficient: number;
+  readonly rSquared: number;
+  readonly healthImpact: HealthImpact;
+  readonly confidenceLevel: number;
+}
+
+export type InsightType = 'recommendation' | 'pattern' | 'alert' | 'achievement';
+export type InsightImportance = 'low' | 'medium' | 'high' | 'critical';
+
+export interface AIInsight {
+  readonly type: InsightType;
+  readonly category:
+    | 'weight_loss'
+    | 'muscle_gain'
+    | 'health_risk'
+    | 'progress'
+    | 'body_composition'
+    | 'health_improvement';
+  readonly title: string;
+  readonly description: string;
+  readonly actionItems?: readonly string[];
+  readonly triggerData: Readonly<Record<string, unknown>>;
+  readonly confidenceScore: number;
+  readonly importanceLevel: InsightImportance;
+  readonly expiresAt?: Date | null;
+}
+
+export type ExportType = 'full' | 'date_range' | 'specific_metrics';
+export type ExportFormat = 'json' | 'csv' | 'pdf';
+
+export interface ExportDateRange {
+  readonly startDate: Date;
+  readonly endDate: Date;
+}
+
+export interface ExportRequest {
+  readonly exportType: ExportType;
+  readonly format: ExportFormat;
+  readonly dateRange?: ExportDateRange;
+  readonly includedMetrics?: readonly string[];
+}
+
+export interface WithingsDataExportRecord {
+  readonly id: string;
+  readonly user_id: string;
+  readonly export_type: ExportType;
+  readonly export_format: ExportFormat;
+  readonly date_range_start?: string | null;
+  readonly date_range_end?: string | null;
+  readonly included_metrics?: string[] | null;
+  readonly status: string;
+  readonly file_path?: string | null;
+  readonly file_size_bytes?: number | null;
+  readonly download_url?: string | null;
+  readonly expires_at?: string | null;
+  readonly compliance_flags?: Record<string, unknown> | null;
+  readonly access_log?: Record<string, unknown> | null;
+  readonly created_at: string;
+  readonly completed_at?: string | null;
+}
+
+export interface HealthGoal {
+  readonly id: string;
+  readonly user_id: string;
+  readonly goal_type: 'weight_loss' | 'weight_gain' | 'body_fat_reduction' | 'muscle_gain';
+  readonly metric_type: 'weight' | 'body_fat_percentage' | 'muscle_mass_kg';
+  readonly target_value: number;
+  readonly current_value?: number | null;
+  readonly start_value: number;
+  readonly target_date?: string | null;
+  readonly progress_percentage: number;
+  readonly is_on_track: boolean;
+  readonly estimated_completion_date?: string | null;
+  readonly is_active: boolean;
+  readonly created_at: string;
+  readonly updated_at: string;
+  readonly completed_at?: string | null;
+}
+
+export interface GoalProgress {
+  readonly progressPercentage: number;
+  readonly isOnTrack: boolean;
+  readonly estimatedCompletionDate?: Date | null;
+}

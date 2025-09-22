@@ -22,7 +22,7 @@ import Link from 'next/link'
 import { logAuthEvent } from '@/lib/logger'
 
 interface AppNavigationProps {
-  user: User
+  readonly user: User
 }
 
 export function AppNavigation({ user }: AppNavigationProps) {

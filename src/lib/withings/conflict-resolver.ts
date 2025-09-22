@@ -120,12 +120,17 @@ export class ConflictResolver {
     conflict: DataConflict
   ): Promise<void> {
     const supabase = await createClient();
-    
+    const measurementId = Number(measurement.id);
+
+    if (!Number.isFinite(measurementId)) {
+      throw new Error(`Invalid Withings measurement id: ${measurement.id}`);
+    }
+
     const { error } = await supabase.from('withings_data_conflicts').insert({
       user_id: userId,
       sync_job_id: syncJobId,
       conflict_type: conflict.type,
-      withings_measurement_id: measurement.id,
+      withings_measurement_id: measurementId,
       existing_weight_log_id: conflict.existingEntry.id,
       withings_data: {
         value: measurement.value,
