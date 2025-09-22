@@ -46,12 +46,12 @@ export default function PhotoUpload({ className }: PhotoUploadProps) {
   const router = useRouter()
   const storageClient = new SupabaseStorageClient()
   const imageProcessor = new ImageProcessor()
-  const supabase = createClient()
 
   // Get user ID on component mount
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const supabaseClient = createClient()
+      const { data: { user } } = await supabaseClient.auth.getUser()
       if (user) {
         setUserId(user.id)
       }

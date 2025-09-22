@@ -24,7 +24,7 @@ export class WithingsWebhookProcessor {
 
       // Process based on application type
       const result = await this.processApplicationData(
-        connection.user_id,
+        connection.userId,
         notification
       );
 
@@ -92,17 +92,19 @@ export class WithingsWebhookProcessor {
     const syncEngine = new WithingsSyncEngine();
 
     try {
-      const result = await syncEngine.syncMeasurements(userId, {
+      const jobId = await syncEngine.startSync(userId, {
         startDate,
         endDate,
         jobType: 'webhook',
         measurementTypes: ['weight', 'fat_ratio', 'muscle_mass', 'bone_mass', 'hydration']
       });
 
+      const result = await syncEngine.waitForSyncCompletion(jobId, 60000);
+
       return {
-        processed: result.processed,
-        synced: result.synced,
-        skipped: result.skipped
+        processed: result.measurements_processed,
+        synced: result.measurements_synced,
+        skipped: result.measurements_skipped
       };
     } catch (error) {
       console.error('Failed to sync weight measurements:', error);
@@ -173,7 +175,7 @@ export class WithingsWebhookProcessor {
    * Find user connection by Withings user ID
    */
   private async findUserConnection(withingsUserId: string): Promise<WithingsConnection | null> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('withings_connections')
@@ -198,13 +200,13 @@ export class WithingsWebhookProcessor {
     connection: WithingsConnection,
     notification: WithingsWebhookNotification
   ): Promise<string> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('withings_webhook_events')
       .insert({
         webhook_id: webhookId,
-        user_id: connection.user_id,
+        user_id: connection.userId,
         connection_id: connection.id,
         event_type: this.getEventType(notification.appli),
         application: notification.appli,
@@ -231,9 +233,15 @@ export class WithingsWebhookProcessor {
     status: string,
     errorMessage?: string
   ): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
-    const updateData: any = {
+    const updateData: {
+      processing_status: string;
+      last_attempt_at: string;
+      processing_attempts?: number;
+      completed_at?: string;
+      error_message?: string;
+    } = {
       processing_status: status,
       last_attempt_at: new Date().toISOString()
     };
@@ -275,7 +283,7 @@ export class WithingsWebhookProcessor {
    * Find webhook event ID by webhook ID
    */
   private async findWebhookEventId(webhookId: string): Promise<string | null> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('withings_webhook_events')

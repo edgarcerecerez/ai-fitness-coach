@@ -12,6 +12,13 @@ interface CameraProps {
   enableBatch?: boolean;
 }
 
+const CAMERA_TIPS = [
+  'Hold camera 12-18 inches from food',
+  'Ensure good lighting - avoid shadows',
+  'Include the entire meal in frame',
+  'Keep camera steady for clear photos'
+] as const;
+
 export const OptimizedCamera: React.FC<CameraProps> = ({
   onCapture,
   onCancel,
@@ -20,7 +27,7 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [flashMode, setFlashMode] = useState<'off' | 'on'>('off');
   const [guidelines, setGuidelines] = useState(showGuidelines);
@@ -33,49 +40,58 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
-  // Camera tips
-  const tips = [
-    "Hold camera 12-18 inches from food",
-    "Ensure good lighting - avoid shadows",
-    "Include the entire meal in frame",
-    "Keep camera steady for clear photos"
-  ];
   const [currentTip, setCurrentTip] = useState(0);
 
-  useEffect(() => {
-    startCamera();
-    
-    // Rotate tips
-    const tipInterval = setInterval(() => {
-      setCurrentTip((prev) => (prev + 1) % tips.length);
-    }, 4000);
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  }, []);
 
-    return () => {
-      mountedRef.current = false;
-      if (flashTimeoutRef.current) {
-        clearTimeout(flashTimeoutRef.current);
-        flashTimeoutRef.current = null;
+  const analyzeLighting = useCallback(() => {
+    lightingIntervalRef.current = setInterval(() => {
+      if (!videoRef.current || !canvasRef.current) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      canvas.width = 100;
+      canvas.height = 100;
+      ctx.drawImage(videoRef.current, 0, 0, 100, 100);
+
+      const imageData = ctx.getImageData(0, 0, 100, 100);
+      const data = imageData.data;
+      
+      let brightness = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
       }
-      clearInterval(tipInterval);
-      cleanupCameraResources();
-    };
-  }, [facingMode]);
+      brightness = brightness / (data.length / 4);
 
-  const cleanupCameraResources = () => {
+      if (brightness < 50) {
+        setLightingQuality('poor');
+      } else if (brightness < 120) {
+        setLightingQuality('fair');
+      } else {
+        setLightingQuality('good');
+      }
+    }, 1000);
+  }, []);
+
+  const cleanupCameraResources = useCallback(() => {
     if (lightingIntervalRef.current) {
       clearInterval(lightingIntervalRef.current);
       lightingIntervalRef.current = null;
     }
     stopCamera();
-  };
+  }, [stopCamera]);
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       // Clean up existing stream before starting new one
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-      }
+      stopCamera();
 
       // Clear any existing lighting analysis
       if (lightingIntervalRef.current) {
@@ -92,7 +108,7 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      setStream(mediaStream);
+      streamRef.current = mediaStream;
       setCameraError(null); // Clear any previous errors
       
       if (videoRef.current) {
@@ -127,45 +143,26 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
       
       setCameraError(errorMessage);
     }
-  };
+  }, [analyzeLighting, facingMode, stopCamera]);
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
+  useEffect(() => {
+    startCamera();
 
-  const analyzeLighting = () => {
-    lightingIntervalRef.current = setInterval(() => {
-      if (!videoRef.current || !canvasRef.current) return;
+    // Rotate tips
+    const tipInterval = setInterval(() => {
+      setCurrentTip((prev) => (prev + 1) % CAMERA_TIPS.length);
+    }, 4000);
 
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      canvas.width = 100;
-      canvas.height = 100;
-      ctx.drawImage(videoRef.current, 0, 0, 100, 100);
-
-      const imageData = ctx.getImageData(0, 0, 100, 100);
-      const data = imageData.data;
-      
-      let brightness = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    return () => {
+      mountedRef.current = false;
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = null;
       }
-      brightness = brightness / (data.length / 4);
-
-      if (brightness < 50) {
-        setLightingQuality('poor');
-      } else if (brightness < 120) {
-        setLightingQuality('fair');
-      } else {
-        setLightingQuality('good');
-      }
-    }, 1000);
-  };
+      clearInterval(tipInterval);
+      cleanupCameraResources();
+    };
+  }, [cleanupCameraResources, startCamera]);
 
   const handleCapture = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -203,14 +200,14 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
         const file = new File([blob], `meal-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
         
         if (enableBatch) {
-          setBatchPhotos([...batchPhotos, file]);
+        setBatchPhotos(prev => [...prev, file]);
         } else {
           onCapture(file);
         }
       }
       setIsCapturing(false);
     }, 'image/jpeg', 0.9);
-  }, [flashMode, enableBatch, batchPhotos, onCapture]);
+  }, [flashMode, enableBatch, onCapture]);
 
   const toggleCamera = () => {
     setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
@@ -295,7 +292,7 @@ export const OptimizedCamera: React.FC<CameraProps> = ({
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-white" />
               <p className="text-white text-sm font-medium">
-                {tips[currentTip]}
+                {CAMERA_TIPS[currentTip]}
               </p>
             </div>
             <button

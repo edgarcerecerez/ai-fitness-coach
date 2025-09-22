@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,9 +54,41 @@ export function FoodLogManager() {
     logName: ''
   });
 
+  const getAuthenticatedUser = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
+      return null;
+    }
+    return { supabase, user } as const;
+  }, []);
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      const auth = await getAuthenticatedUser();
+      if (!auth) return;
+      const { supabase, user } = auth;
+
+      const { data, error } = await supabase
+        .from('nutrition_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (error: unknown) {
+      console.error('Error fetching logs:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthenticatedUser]);
+
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [fetchLogs]);
 
   useEffect(() => {
     const filterLogs = () => {
@@ -82,38 +114,6 @@ export function FoodLogManager() {
     
     filterLogs();
   }, [logs, searchTerm, dateFilter]);
-
-  const getAuthenticatedUser = async () => {
-    const supabase = createClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      return null;
-    }
-    return { supabase, user } as const;
-  };
-
-  const fetchLogs = async () => {
-    try {
-      const auth = await getAuthenticatedUser();
-      if (!auth) return;
-      const { supabase, user } = auth;
-
-      const { data, error } = await supabase
-        .from('nutrition_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      setLogs(data || []);
-    } catch (error: unknown) {
-      console.error('Error fetching logs:', error instanceof Error ? { message: error.message, stack: error.stack } : String(error));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEdit = (log: FoodLog) => {
     setEditingLog(log.id);

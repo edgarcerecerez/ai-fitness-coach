@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const webhookId = `${payload.userid}_${payload.appli}_${payload.date}`;
 
     // Check for duplicate webhook
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: existing } = await supabase
       .from('withings_webhook_events')
       .select('id')
@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
 
     // Queue webhook for processing via Inngest
     try {
-      const { inngest } = await import('@/lib/inngest/client');
+      const { getInngestClient } = await import('@/lib/inngest/client');
+      const inngest = getInngestClient();
       await inngest.send({
         name: 'withings/webhook.received',
         data: {

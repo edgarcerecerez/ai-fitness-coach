@@ -1,5 +1,4 @@
 import { WithingsMeasurement, ProcessedMeasurement } from './types';
-import { WeightUnit } from '@/lib/weight-conversion';
 import { apiLogger } from '@/lib/logger';
 import { createClient } from '@/utils/supabase/server';
 
@@ -25,7 +24,7 @@ export class MeasurementProcessor {
    * Find existing measurement by Withings ID
    */
   async findExisting(userId: string, measurementId: string): Promise<WeightLogEntry | null> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data } = await supabase
       .from('weight_logs')
@@ -50,14 +49,14 @@ export class MeasurementProcessor {
       throw new Error('No weight data in measurement');
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('weight_logs')
       .insert({
         user_id: userId,
         weight_kg: processed.weight,
-        weight_unit: WeightUnit.KG,
+        weight_unit: 'kg',
         logged_at: measurement.timestamp.toISOString(),
         withings_measurement_id: measurement.id,
         withings_device_id: measurement.deviceId,
@@ -223,7 +222,7 @@ export class MeasurementProcessor {
     startDate: Date,
     endDate: Date
   ): Promise<WeightLogMeasurement[]> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('weight_logs')
@@ -259,23 +258,27 @@ export class MeasurementProcessor {
     measurementId: string,
     status: 'manual' | 'synced' | 'pending' | 'conflict'
   ): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
-    const { error } = await supabase
-      .from('weight_logs')
-      .update({ sync_status: status })
-      .eq('withings_measurement_id', measurementId)
-      .catch((err) => {
-        apiLogger.error('Database update failed', {
-          measurementId,
-          status,
-          error: err
-        });
-        throw err;
-      });
+    try {
+      const { error } = await supabase
+        .from('weight_logs')
+        .update({ sync_status: status })
+        .eq('withings_measurement_id', measurementId);
 
-    if (error) {
-      throw new Error(`Failed to update sync status: ${error.message}`);
+      if (error) {
+        throw error;
+      }
+    } catch (err) {
+      apiLogger.error('Database update failed', {
+        measurementId,
+        status,
+        error: err
+      });
+      if (err instanceof Error) {
+        throw new Error(`Failed to update sync status: ${err.message}`);
+      }
+      throw new Error(`Failed to update sync status: ${String(err)}`);
     }
   }
 }

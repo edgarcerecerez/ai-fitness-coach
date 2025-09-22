@@ -4,7 +4,9 @@ import { WithingsConnectionService } from '../withings/database';
 import { 
   ConnectionStatus, 
   WithingsApiError,
-  WithingsRateLimitError 
+  WithingsRateLimitError,
+  WithingsMeasureResponseBody,
+  WithingsUserInfoResponseBody 
 } from '../withings/types';
 import { apiLogger } from '../logger';
 
@@ -60,14 +62,14 @@ export class WithingsService {
   /**
    * Get user information from Withings
    */
-  async getUserInfo(userId: string): Promise<unknown> {
+  async getUserInfo(userId: string): Promise<WithingsUserInfoResponseBody> {
     try {
       const response = await this.apiClient.getUserInfo(userId);
       
-      if (response.status === 0 && response.body) {
+      if (response.ok) {
         apiLogger.info('Successfully retrieved user info from Withings', {
           userId: userId.substring(0, 8) + '...',
-          withingsUserId: (response.body as any)?.userid
+          withingsUserId: response.body.userid
         });
         return response.body;
       }
@@ -89,7 +91,7 @@ export class WithingsService {
       endDate?: Date;
       limit?: number;
     } = {}
-  ): Promise<unknown> {
+  ): Promise<WithingsMeasureResponseBody> {
     try {
       const params: Record<string, unknown> = {
         meastype: '1', // Weight measurements
@@ -110,16 +112,17 @@ export class WithingsService {
 
       const response = await this.apiClient.getMeasurements(userId, params);
 
-      if (response.status === 0 && response.body) {
+      if (response.ok) {
         // Update last sync time
         const connection = await this.connectionService.getConnection(userId);
         if (connection) {
           await this.connectionService.updateLastSyncTime(connection.id);
         }
 
+        const measurementCount = response.body.measuregrps?.length ?? 0;
         apiLogger.info('Successfully retrieved weight measurements from Withings', {
           userId: userId.substring(0, 8) + '...',
-          measurementCount: (response.body as any)?.measuregrps?.length || 0,
+          measurementCount,
           startDate: options.startDate?.toISOString(),
           endDate: options.endDate?.toISOString()
         });
@@ -149,7 +152,7 @@ export class WithingsService {
       limit?: number;
       measureTypes?: string[];
     } = {}
-  ): Promise<unknown> {
+  ): Promise<WithingsMeasureResponseBody> {
     try {
       const params: Record<string, unknown> = {
         category: '1' // Real measurements
@@ -173,16 +176,17 @@ export class WithingsService {
 
       const response = await this.apiClient.getMeasurements(userId, params);
 
-      if (response.status === 0 && response.body) {
+      if (response.ok) {
         // Update last sync time
         const connection = await this.connectionService.getConnection(userId);
         if (connection) {
           await this.connectionService.updateLastSyncTime(connection.id);
         }
 
+        const measurementCount = response.body.measuregrps?.length ?? 0;
         apiLogger.info('Successfully retrieved body measurements from Withings', {
           userId: userId.substring(0, 8) + '...',
-          measurementCount: (response.body as any)?.measuregrps?.length || 0,
+          measurementCount,
           measureTypes: options.measureTypes,
           startDate: options.startDate?.toISOString(),
           endDate: options.endDate?.toISOString()
@@ -248,7 +252,13 @@ export class WithingsService {
     }
 
     // Network errors might be retryable
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'network_error') {
+    type ErrorWithCode = { code?: unknown };
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as ErrorWithCode).code === 'network_error'
+    ) {
       return true;
     }
 

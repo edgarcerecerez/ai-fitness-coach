@@ -69,7 +69,7 @@ export class WithingsNotificationService {
    * Get user notification preferences
    */
   private async fetchUserPreferences(userId: string): Promise<WithingsNotificationPreferences> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('withings_notification_preferences')
@@ -125,7 +125,7 @@ export class WithingsNotificationService {
    * Get active notification tokens for user
    */
   private async fetchUserTokens(userId: string): Promise<UserNotificationToken[]> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('user_notification_tokens')
@@ -202,7 +202,7 @@ export class WithingsNotificationService {
    * Update token last used timestamp
    */
   private async updateTokenLastUsed(tokenId: string): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { error } = await supabase
       .from('user_notification_tokens')
@@ -218,7 +218,7 @@ export class WithingsNotificationService {
    * Register new notification token
    */
   async registerToken(userId: string, token: string, platform: string): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Upsert the token (create or update if exists)
     const { error } = await supabase
@@ -252,7 +252,7 @@ export class WithingsNotificationService {
     userId: string,
     updates: Partial<Omit<WithingsNotificationPreferences, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
   ): Promise<WithingsNotificationPreferences> {
-    const supabase = createClient();
+    const supabase = await createClient();
     const now = new Date().toISOString();
 
     const payload: Record<string, unknown> = {
@@ -312,7 +312,7 @@ export class WithingsNotificationService {
    * Deactivate a notification token.
    */
   async removeToken(userId: string, tokenId: string): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const { error } = await supabase
       .from('user_notification_tokens')

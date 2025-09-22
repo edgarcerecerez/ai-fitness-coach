@@ -45,10 +45,6 @@ export function SyncHistory() {
 
   const ITEMS_PER_PAGE = 10;
 
-  useEffect(() => {
-    loadSyncHistory();
-  }, [page, loadSyncHistory]);
-
   const loadSyncHistory = useCallback(async () => {
     try {
       const response = await fetch(
@@ -68,6 +64,10 @@ export function SyncHistory() {
       setLoading(false);
     }
   }, [page]);
+
+  useEffect(() => {
+    loadSyncHistory();
+  }, [page, loadSyncHistory]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

@@ -2,8 +2,11 @@
 import { 
   WithingsConnection, 
   WithingsApiResponse, 
+  WithingsApiSuccess,
   WithingsApiError,
-  WithingsRateLimitError 
+  WithingsRateLimitError,
+  WithingsMeasureResponseBody,
+  WithingsUserInfoResponseBody 
 } from './types';
 import { WithingsConnectionService } from './database';
 import { WithingsAuthService } from './auth';
@@ -47,12 +50,12 @@ export class WithingsApiClient {
   /**
    * Make authenticated API request with automatic token refresh
    */
-  async makeRequest(
+  async makeRequest<TResponseBody = unknown>(
     userId: string,
     endpoint: string,
     params: Record<string, unknown> = {},
     retryCount = 0
-  ): Promise<WithingsApiResponse> {
+  ): Promise<WithingsApiResponse<TResponseBody>> {
     try {
       await this.checkRateLimit(userId);
 
@@ -140,7 +143,15 @@ export class WithingsApiClient {
         userId: userId.substring(0, 8) + '...'
       });
 
-      return data;
+      const { status, body, ...rest } = data;
+      const successResponse: WithingsApiSuccess<TResponseBody> & Record<string, unknown> = {
+        status,
+        ok: true,
+        body: body as TResponseBody,
+        ...rest
+      };
+
+      return successResponse;
     } catch (error) {
       if (error instanceof WithingsApiError || error instanceof WithingsRateLimitError) {
         throw error;
@@ -163,8 +174,8 @@ export class WithingsApiClient {
   /**
    * Get user information
    */
-  async getUserInfo(userId: string): Promise<WithingsApiResponse> {
-    return this.makeRequest(userId, '/v2/user');
+  async getUserInfo(userId: string): Promise<WithingsApiResponse<WithingsUserInfoResponseBody>> {
+    return this.makeRequest<WithingsUserInfoResponseBody>(userId, '/v2/user');
   }
 
   /**
@@ -179,8 +190,8 @@ export class WithingsApiClient {
       enddate?: number;
       limit?: number;
     } = {}
-  ): Promise<WithingsApiResponse> {
-    return this.makeRequest(userId, '/v2/measure', { 
+  ): Promise<WithingsApiResponse<WithingsMeasureResponseBody>> {
+    return this.makeRequest<WithingsMeasureResponseBody>(userId, '/v2/measure', { 
       ...options
     });
   }

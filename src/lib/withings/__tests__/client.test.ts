@@ -58,7 +58,7 @@ describe('WithingsApiClient', () => {
 
       const result = await apiClient.makeRequest('user123', '/v2/user', { action: 'getinfo' });
 
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual({ ...mockResponse, ok: true });
       expect(global.fetch).toHaveBeenCalledWith(
         'https://wbsapi.withings.net/v2/user',
         expect.objectContaining({
@@ -140,6 +140,7 @@ describe('WithingsApiClient', () => {
 
       const result = await apiClient.makeRequest('user123', '/v2/user');
 
+      expect(result.ok).toBe(true);
       expect(result.body.data).toBe('success');
       expect(mockAuthService.refreshToken).toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledTimes(2);

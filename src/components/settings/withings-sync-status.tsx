@@ -48,19 +48,6 @@ export function WithingsSyncStatus() {
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadSyncStatus();
-    
-    // Auto-refresh every 30 seconds if there are active jobs
-    const interval = setInterval(() => {
-      if (syncData?.syncJobs.some(job => job.status === 'processing' || job.status === 'pending')) {
-        loadSyncStatus();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [syncData?.syncJobs, loadSyncStatus]);
-
   const loadSyncStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/integrations/withings/sync');
@@ -85,6 +72,19 @@ export function WithingsSyncStatus() {
       setLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    loadSyncStatus();
+    
+    // Auto-refresh every 30 seconds if there are active jobs
+    const interval = setInterval(() => {
+      if (syncData?.syncJobs.some(job => job.status === 'processing' || job.status === 'pending')) {
+        loadSyncStatus();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [syncData?.syncJobs, loadSyncStatus]);
 
   const triggerManualSync = async () => {
     setSyncing(true);

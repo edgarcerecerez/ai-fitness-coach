@@ -43,7 +43,7 @@ export const scheduledWithingsSync = inngest.createFunction(
     // Step 1: Get all active connections that need sync
     const connections = await step.run('get-connections-needing-sync', async () => {
       const { createClient } = await import('@/utils/supabase/server');
-      const supabase = createClient();
+      const supabase = await createClient();
       
       const { data } = await supabase
         .from('withings_connections')
@@ -203,7 +203,7 @@ export const webhookWithingsProcess = inngest.createFunction(
           
           // Find user ID from webhook payload
           const { createClient } = await import('@/utils/supabase/server');
-          const supabase = createClient();
+          const supabase = await createClient();
           
           const { data: connection } = await supabase
             .from('withings_connections')

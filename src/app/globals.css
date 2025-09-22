@@ -120,3 +120,95 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+@layer components {
+  .glass-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(30px);
+    box-shadow: 0 35px 60px rgba(15, 23, 42, 0.35);
+    z-index: 0;
+  }
+
+  .glass-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .glass-panel::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.05));
+    opacity: 0.65;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  .glass-panel::after {
+    content: "";
+    position: absolute;
+    top: -30%;
+    right: -15%;
+    width: 45%;
+    height: 45%;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.05));
+    pointer-events: none;
+    filter: blur(0);
+  }
+
+  .glass-badge {
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    backdrop-filter: blur(24px);
+    box-shadow: 0 15px 35px rgba(15, 23, 42, 0.35);
+  }
+
+  .glass-badge svg {
+    color: inherit;
+  }
+
+  .glass-button {
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.78);
+    color: rgb(15, 23, 42);
+    backdrop-filter: blur(26px);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
+    transition: all 0.25s ease;
+  }
+
+  .glass-button:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 20px 55px rgba(15, 23, 42, 0.4);
+  }
+
+  .glass-button-outline {
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    backdrop-filter: blur(24px);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
+    transition: all 0.25s ease;
+  }
+
+  .glass-button-outline:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 20px 55px rgba(15, 23, 42, 0.42);
+  }
+
+  .glass-button-outline svg {
+    color: currentColor;
+  }
+}

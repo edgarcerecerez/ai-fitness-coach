@@ -1,4 +1,10 @@
-import { WithingsDevice, WithingsConnection } from './types';
+import { 
+  WithingsDevice, 
+  WithingsConnection,
+  WithingsDeviceListResponse,
+  WithingsDeviceApiItem,
+  WithingsApiResponse 
+} from './types';
 import { WithingsApiClient } from './client';
 import { createClient } from '@/utils/supabase/server';
 
@@ -21,7 +27,7 @@ export class WithingsDeviceManager {
       }
 
       // Fetch devices from Withings API
-      const response = await this.apiClient.makeRequest(userId, '/v2/user', {
+      const response = await this.apiClient.makeRequest<WithingsDeviceListResponse>(userId, '/v2/user', {
         action: 'getdevice'
       });
 
@@ -40,17 +46,20 @@ export class WithingsDeviceManager {
   /**
    * Parse devices from Withings API response
    */
-  private parseDevicesResponse(response: any): WithingsDevice[] {
-    if (!response.body || !response.body.devices) {
+  private parseDevicesResponse(
+    response: WithingsApiResponse<WithingsDeviceListResponse>
+  ): WithingsDevice[] {
+    const deviceList = response.body?.devices ?? [];
+    if (deviceList.length === 0) {
       return [];
     }
 
-    return response.body.devices.map((device: any) => ({
+    return deviceList.map((device: WithingsDeviceApiItem) => ({
       id: device.deviceid,
       type: this.getDeviceType(device.type),
       model: device.model,
       modelId: device.model_id,
-      batteryLevel: device.battery,
+      batteryLevel: this.normalizeBatteryLevel(device.battery),
       timezone: device.timezone,
       lastSessionDate: device.last_session_date ? new Date(device.last_session_date * 1000) : undefined,
       features: this.getDeviceFeatures(device.type, device.model_id),
@@ -59,11 +68,22 @@ export class WithingsDeviceManager {
     }));
   }
 
+  private normalizeBatteryLevel(level: WithingsDeviceApiItem['battery']): number | string | undefined {
+    if (level === null || level === undefined) {
+      return undefined;
+    }
+    if (typeof level === 'string') {
+      const parsed = Number(level);
+      return Number.isNaN(parsed) ? level : parsed;
+    }
+    return level;
+  }
+
   /**
    * Update devices in database
    */
   private async updateDevicesInDatabase(connectionId: string, devices: WithingsDevice[]): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Update or insert devices
     for (const device of devices) {
@@ -146,7 +166,7 @@ export class WithingsDeviceManager {
    * Get devices for user
    */
   async getDevicesForUser(userId: string): Promise<WithingsDevice[]> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data: devices, error } = await supabase
       .from('withings_devices')
@@ -181,7 +201,7 @@ export class WithingsDeviceManager {
    * Toggle device notifications
    */
   async toggleDeviceNotifications(userId: string, deviceId: string, enabled: boolean): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // First verify the device belongs to the user
     const { data: device } = await supabase
@@ -213,7 +233,7 @@ export class WithingsDeviceManager {
    * Get user connection
    */
   private async getUserConnection(userId: string): Promise<WithingsConnection | null> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('withings_connections')
@@ -234,7 +254,7 @@ export class WithingsDeviceManager {
    * Get active connections (for scheduled device updates)
    */
   async getActiveConnections(): Promise<{ user_id: string; id: string }[]> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('withings_connections')

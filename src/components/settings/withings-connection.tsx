@@ -24,6 +24,30 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
   const [disconnecting, setDisconnecting] = useState(false);
   const { toast } = useToast();
 
+  const loadConnectionStatus = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/integrations/withings/status');
+      
+      if (!response.ok) {
+        throw new Error('Failed to load connection status');
+      }
+      
+      const connectionStatus: ConnectionStatus = await response.json();
+      setStatus(connectionStatus);
+      onConnectionChange?.(connectionStatus.isConnected);
+    } catch (error) {
+      console.error('Failed to load Withings connection status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load Withings connection status',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast, onConnectionChange]);
+
   useEffect(() => {
     loadConnectionStatus();
     
@@ -66,30 +90,6 @@ export function WithingsConnection({ onConnectionChange }: WithingsConnectionPro
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [toast, loadConnectionStatus]);
-
-  const loadConnectionStatus = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/integrations/withings/status');
-      
-      if (!response.ok) {
-        throw new Error('Failed to load connection status');
-      }
-      
-      const connectionStatus: ConnectionStatus = await response.json();
-      setStatus(connectionStatus);
-      onConnectionChange?.(connectionStatus.isConnected);
-    } catch (error) {
-      console.error('Failed to load Withings connection status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load Withings connection status',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast, onConnectionChange]);
 
   const handleConnect = async () => {
     try {

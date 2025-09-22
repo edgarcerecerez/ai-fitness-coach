@@ -27,8 +27,8 @@ function LoginPageContent() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo')
-  const target = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/app'
+  const redirectParam = searchParams?.get('redirectTo')
+  const target = redirectParam && redirectParam.startsWith('/') ? redirectParam : '/app'
 
   // Log page initialization
   useEffect(() => {

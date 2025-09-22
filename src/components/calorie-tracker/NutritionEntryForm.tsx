@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -134,11 +135,16 @@ export default function NutritionEntryForm({
           {imageUrl && (
             <div>
               <Label>Meal Image</Label>
-              <img
-                src={imageUrl}
-                alt="Meal"
-                className="w-full h-48 object-cover rounded-lg mt-2"
-              />
+              <div className="relative mt-2 h-48 w-full">
+                <Image
+                  src={imageUrl}
+                  alt="Meal"
+                  fill
+                  className="rounded-lg object-cover"
+                  sizes="(min-width: 768px) 480px, 100vw"
+                  unoptimized
+                />
+              </div>
             </div>
           )}
 

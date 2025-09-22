@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { WithingsWebhookNotification } from './types';
 
 export class WithingsWebhookSecurity {
   private readonly clientSecret: string;
@@ -49,22 +50,25 @@ export class WithingsWebhookSecurity {
   /**
    * Validate webhook payload structure
    */
-  validatePayload(payload: any): { valid: boolean; errors: string[] } {
+  validatePayload(payload: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
+    const data = (typeof payload === 'object' && payload !== null)
+      ? payload as Partial<WithingsWebhookNotification>
+      : {};
 
-    if (!payload.userid) {
+    if (!data?.userid) {
       errors.push('Missing userid');
     }
 
-    if (!payload.appli) {
+    if (!data?.appli) {
       errors.push('Missing application ID');
     }
 
-    if (!payload.startdate || !payload.enddate) {
+    if (!data?.startdate || !data?.enddate) {
       errors.push('Missing date range');
     }
 
-    if (!payload.date) {
+    if (!data?.date) {
       errors.push('Missing notification date');
     }
 

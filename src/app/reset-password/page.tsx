@@ -41,8 +41,8 @@ function ResetPasswordContent() {
         setIsValidSession(true)
       } else {
         // Try to get session from URL parameters
-        const accessToken = searchParams.get('access_token')
-        const refreshToken = searchParams.get('refresh_token')
+        const accessToken = searchParams?.get('access_token')
+        const refreshToken = searchParams?.get('refresh_token')
         
         if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({

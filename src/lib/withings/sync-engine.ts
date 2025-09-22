@@ -72,9 +72,9 @@ export class WithingsSyncEngine {
       
       await this.updateSyncJobStatus(syncJobId, 'completed');
       await this.updateSyncJobProgress(syncJobId, {
-        measurements_processed: results.processed,
-        measurements_synced: results.synced,
-        measurements_skipped: results.skipped
+        measurements_processed: results.measurements_processed,
+        measurements_synced: results.measurements_synced,
+        measurements_skipped: results.measurements_skipped
       });
 
       // Update connection last sync time
@@ -125,13 +125,18 @@ export class WithingsSyncEngine {
       params.lastupdate = Math.floor(options.lastUpdate.getTime() / 1000);
     }
 
-    const response = await this.apiClient.makeRequest(userId, '/measure', params);
-    
-    if (!response.body || !response.body.measuregrps) {
+    const response = await this.apiClient.makeRequest<{ measuregrps?: WithingsMeasureGroup[] }>(
+      userId,
+      '/measure',
+      params
+    );
+
+    const measureGroups = response.body?.measuregrps;
+    if (!Array.isArray(measureGroups) || measureGroups.length === 0) {
       return [];
     }
 
-    return this.parseMeasurements(response.body.measuregrps);
+    return this.parseMeasurements(measureGroups);
   }
 
   /**
@@ -223,13 +228,13 @@ export class WithingsSyncEngine {
       }
     }
 
-    return { processed, synced, skipped };
+    return { measurements_processed: processed, measurements_synced: synced, measurements_skipped: skipped };
   }
 
   /**
    * Get measurement types for API request
    */
-  private getMeasurementTypes(types?: string[]): string {
+  private getMeasurementTypes(types?: readonly string[]): string {
     const defaultTypes = [1, 4, 5, 6, 8, 76, 77, 88]; // Weight, height, fat-free mass, fat ratio, fat mass, muscle mass, hydration, bone mass
     
     if (!types) {
@@ -281,7 +286,7 @@ export class WithingsSyncEngine {
     status: string,
     reason: string
   ): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     await supabase.from('withings_sync_job_details').insert({
       sync_job_id: syncJobId,
@@ -299,7 +304,7 @@ export class WithingsSyncEngine {
    * Wait for sync completion (used by Inngest functions)
    */
   async waitForSyncCompletion(jobId: string, timeoutMs: number): Promise<SyncResult> {
-    const supabase = createClient();
+    const supabase = await createClient();
     const startTime = Date.now();
     
     while (Date.now() - startTime < timeoutMs) {
@@ -315,9 +320,9 @@ export class WithingsSyncEngine {
 
       if (job.status === 'completed') {
         return {
-          processed: job.measurements_processed || 0,
-          synced: job.measurements_synced || 0,
-          skipped: job.measurements_skipped || 0
+          measurements_processed: job.measurements_processed || 0,
+          measurements_synced: job.measurements_synced || 0,
+          measurements_skipped: job.measurements_skipped || 0
         };
       }
 
@@ -334,7 +339,7 @@ export class WithingsSyncEngine {
 
   // Helper methods for database operations
   private async createSyncJob(connectionId: string, options: SyncJobOptions, inngestEventId?: string): Promise<WithingsSyncJobRecord> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('withings_sync_jobs')
@@ -357,9 +362,9 @@ export class WithingsSyncEngine {
     status: string, 
     errorMessage?: string
   ): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
-    const updateData: { status: string; updated_at: string; error_message?: string } = { 
+    const updateData: { status: string; updated_at: string; completed_at?: string; error_message?: string } = { 
       status, 
       updated_at: new Date().toISOString() 
     };
@@ -381,7 +386,7 @@ export class WithingsSyncEngine {
     syncJobId: string, 
     progress: Partial<SyncResult & { measurements_requested: number }>
   ): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     await supabase
       .from('withings_sync_jobs')

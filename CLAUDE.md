@@ -29,6 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Authentication**: Supabase Auth
 - **Styling**: Tailwind CSS
 - **UI Components**: Radix UI + shadcn/ui
+- **Icons**: lucide-react (configured in shadcn/ui)
 - **Charts**: Recharts
 - **Logging**: Winston with custom privacy-conscious implementation
 
@@ -82,6 +83,17 @@ All tables use Row Level Security (RLS) with user-specific access policies.
 - Follows Radix UI patterns with Tailwind CSS
 - Comprehensive test coverage with Jest/React Testing Library
 - TypeScript with strict type checking
+
+### Icons & Design System
+- **Icons**: Use lucide-react exclusively for all icons
+  - Import icons individually: `import { IconName } from "lucide-react"`
+  - Avoid custom SVG icons unless absolutely necessary
+  - Standard size classes: `w-4 h-4`, `w-5 h-5`, `w-6 h-6`
+- **Colors**: Use shadcn/ui theme colors exclusively
+  - Semantic colors: `bg-primary`, `text-foreground`, `text-muted-foreground`
+  - Chart colors: `bg-chart-1`, `text-chart-2`, etc.
+  - Avoid hardcoded Tailwind colors like `bg-blue-500`, `text-slate-600`
+- **Theme**: Configured with "new-york" style and "stone" base color
 
 ### State Management
 - Server-side state via Supabase queries

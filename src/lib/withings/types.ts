@@ -44,6 +44,7 @@ export interface WithingsMeasureGroup {
   created: number;
   category: number;
   deviceid?: string;
+  comment?: string;
   measures: Array<{
     value: number;
     type: number;
@@ -51,6 +52,39 @@ export interface WithingsMeasureGroup {
     algo?: number;
     fm?: number;
   }>;
+}
+
+export interface WithingsMeasureResponseBody {
+  measuregrps?: WithingsMeasureGroup[];
+  more?: number;
+  offset?: number;
+  updatetime?: number;
+}
+
+export interface WithingsUserInfoResponseBody {
+  userid?: number | string;
+  users?: Array<{
+    id: number;
+    firstname?: string;
+    lastname?: string;
+    shortname?: string;
+    gender?: number;
+    birthdate?: number;
+  }>;
+}
+
+export interface WithingsDeviceApiItem {
+  deviceid: string;
+  type: number;
+  model: string;
+  model_id?: number;
+  battery?: number | string | null;
+  timezone?: string;
+  last_session_date?: number;
+}
+
+export interface WithingsDeviceListResponse {
+  devices?: WithingsDeviceApiItem[];
 }
 
 // Database record types
@@ -112,9 +146,8 @@ export type WithingsApiFailure = {
   };
 };
 
-export type WithingsApiResponse<T = unknown> =
-  | WithingsApiSuccess<T>
-  | WithingsApiFailure;
+// Client helpers throw on API failure, so downstream code always sees success.
+export type WithingsApiResponse<T = unknown> = WithingsApiSuccess<T>;
 
 // Connection status types
 export interface ConnectionStatus {
@@ -181,20 +214,20 @@ export interface SyncJobOptions {
 }
 
 export interface SyncResult {
-  readonly processed: number;
-  readonly synced: number;
-  readonly skipped: number;
+  measurements_processed: number;
+  measurements_synced: number;
+  measurements_skipped: number;
 }
 
 export interface ProcessedMeasurement {
-  readonly weight?: number;
-  readonly height?: number;
-  readonly fatFreeMass?: number;
-  readonly bodyFat?: number;
-  readonly fatMass?: number;
-  readonly muscleMass?: number;
-  readonly hydration?: number;
-  readonly boneMass?: number;
+  weight?: number;
+  height?: number;
+  fatFreeMass?: number;
+  bodyFat?: number;
+  fatMass?: number;
+  muscleMass?: number;
+  hydration?: number;
+  boneMass?: number;
 }
 
 export const ConflictType = {
@@ -329,17 +362,17 @@ export interface WithingsWebhookEventRecord {
 }
 
 export interface WithingsNotificationPreferences {
-  readonly id: string;
-  readonly user_id: string;
-  readonly measurement_notifications: boolean;
-  readonly achievement_notifications: boolean;
-  readonly sync_failure_notifications: boolean;
-  readonly notification_methods: readonly string[];
-  readonly quiet_hours_start?: string;
-  readonly quiet_hours_end?: string;
-  readonly timezone: string;
-  readonly created_at: string;
-  readonly updated_at: string;
+  id: string;
+  user_id: string;
+  measurement_notifications: boolean;
+  achievement_notifications: boolean;
+  sync_failure_notifications: boolean;
+  notification_methods: string[];
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+  timezone: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserNotificationToken {

@@ -14,6 +14,7 @@ interface UnresolvedConflict {
   readonly conflict_type: string;
   readonly resolved_at: string | null;
   readonly existing_weight_log: WeightLogEntry;
+  readonly resolution_strategy: string | null;
 }
 
 export class ConflictResolver {
@@ -26,7 +27,7 @@ export class ConflictResolver {
   ): Promise<DataConflict[]> {
     if (measurement.type !== 1) return []; // Only check weight conflicts for now
 
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Look for manual entries within 1 hour of the measurement
     const timeWindow = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -118,7 +119,7 @@ export class ConflictResolver {
     measurement: WithingsMeasurement,
     conflict: DataConflict
   ): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { error } = await supabase.from('withings_data_conflicts').insert({
       user_id: userId,
@@ -178,7 +179,7 @@ export class ConflictResolver {
    * Get unresolved conflicts for user
    */
   async getUnresolvedConflicts(userId: string): Promise<UnresolvedConflict[]> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data } = await supabase
       .from('withings_data_conflicts')
@@ -201,7 +202,7 @@ export class ConflictResolver {
     resolution: string,
     userId: string
   ): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Update conflict record
     const { error } = await supabase
@@ -232,7 +233,7 @@ export class ConflictResolver {
    * Apply conflict resolution
    */
   private async applyResolution(conflictId: string, resolution: string): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data: conflict } = await supabase
       .from('withings_data_conflicts')
@@ -318,7 +319,7 @@ export class ConflictResolver {
     pending: number;
     byType: Record<string, number>;
   }> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data: conflicts } = await supabase
       .from('withings_data_conflicts')
