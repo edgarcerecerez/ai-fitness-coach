@@ -4,7 +4,8 @@ module.exports = {
     '@babel/preset-react',
     '@babel/preset-typescript',
   ],
-  // Only apply to test files to avoid Next.js font loading conflicts
-  test: /\.test\.(ts|tsx|js|jsx)$/,
-  plugins: [],
+  plugins: [
+    // Add support for TypeScript syntax that might be confused with Flow
+    '@babel/plugin-syntax-typescript',
+  ],
 };
