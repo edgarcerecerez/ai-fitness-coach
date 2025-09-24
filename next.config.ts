@@ -6,13 +6,17 @@ const nextConfig: NextConfig = {
     // TODO: Re-enable ignoreDuringBuilds after fixing all ESLint errors - Target: Next sprint
     ignoreDuringBuilds: true,
   },
-  
-  // PWA configuration
+
+  // Enable SWC and handle babel config conflict
   experimental: {
+    forceSwcTransforms: true,
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
   },
+
+  // Transpile specific packages that need babel
+  transpilePackages: [],
   
   // Image optimization
   images: {
