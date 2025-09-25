@@ -13,7 +13,7 @@ import { WeightProgressChart, CalorieIntakeChart, MoodSleepChart } from "@/compo
  */
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200">
+    <div className="min-h-screen">
       {/* Navigation */}
       <nav className="border-b border-border/20 bg-background/10 backdrop-blur-2xl sticky top-0 z-50 supports-[backdrop-filter]:bg-background/10">
         <div className="container mx-auto px-4 py-4">

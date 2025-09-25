@@ -1,3 +1,4 @@
+import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { jest } from '@jest/globals'
 import '@testing-library/jest-dom'
@@ -51,11 +52,6 @@ jest.mock('@/components/ui/button', () => ({
     }
     return <button {...props}>{children}</button>
   },
-}))
-
-jest.mock('@/components/ui/card', () => ({
-  Card: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  CardContent: ({ children, ...props }: any) => <div {...props}>{children}</div>,
 }))
 
 jest.mock('@/components/ui/badge', () => ({
@@ -209,8 +205,8 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
 
     it('should have proper layout structure for charts', () => {
       render(<Home />)
-      
-      const dashboardContainer = screen.getByText('Your AI Fitness Dashboard').closest('.bg-white')
+
+      const dashboardContainer = screen.getByText('Your AI Fitness Dashboard').closest('.glass-panel')
       expect(dashboardContainer).toBeInTheDocument()
       expect(dashboardContainer).toHaveClass('rounded-2xl', 'p-6')
     })
@@ -251,9 +247,10 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
 
     it('should have proper grid layout for feature cards', () => {
       render(<Home />)
-      
+
       const featuresGrid = screen.getByText('Smart Calorie Tracking').closest('.grid')
       expect(featuresGrid).toBeInTheDocument()
+      expect(featuresGrid).toHaveClass('md:grid-cols-2', 'lg:grid-cols-3')
     })
   })
 
@@ -319,20 +316,20 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
 
     it('should have dark background styling', () => {
       render(<Home />)
-      
+
       const ctaSection = screen.getByText('Ready to Transform Your Health Journey?').closest('section')
-      expect(ctaSection).toHaveClass('bg-slate-900')
+      expect(ctaSection).toHaveClass('bg-secondary')
     })
   })
 
   describe('Footer Section', () => {
     it('should render the footer with brand information', () => {
       render(<Home />)
-      
+
       const footer = screen.getByRole('contentinfo')
       expect(footer).toBeInTheDocument()
-      expect(footer).toHaveClass('bg-slate-800')
-      
+      expect(footer).toHaveClass('bg-muted')
+
       // Check for brand information in footer
       const footerBrand = footer.querySelector('[class*="font-bold"]')
       expect(footerBrand).toHaveTextContent('AI Fitness Coach')
@@ -465,13 +462,13 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
 
     it('should have proper color contrast', () => {
       const { container } = render(<Home />)
-      
+
       // Check that text elements have proper contrast classes
       const textElements = container.querySelectorAll('h1, h2, h3, p, span')
       textElements.forEach(element => {
         const classList = element.className
-        // Should have Tailwind color classes that provide good contrast
-        expect(classList).toMatch(/(text-white|text-slate-900|text-slate-600|text-slate-300|text-slate-400)/)
+        // Should have theme-based color classes that provide good contrast
+        expect(classList).toMatch(/(text-foreground|text-card-foreground|text-muted-foreground|text-primary|text-secondary)/)
       })
     })
   })

@@ -1,6 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { jest } from '@jest/globals'
+import '@testing-library/jest-dom'
 import LoginPage from '../page'
 
 // Mock Next.js router
@@ -30,21 +31,23 @@ jest.mock('@/utils/supabase/client', () => ({
 }))
 
 // Mock logger
-const mockClientLogger = {
-  info: jest.fn(),
-  debug: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-}
+jest.mock('@/lib/logger', () => {
+  const mockClientLogger = {
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  }
 
-const mockLogError = jest.fn()
-const mockLogAuthEvent = jest.fn()
+  const mockLogError = jest.fn()
+  const mockLogAuthEvent = jest.fn()
 
-jest.mock('@/lib/logger', () => ({
-  clientLogger: mockClientLogger,
-  logError: mockLogError,
-  logAuthEvent: mockLogAuthEvent,
-}))
+  return {
+    clientLogger: mockClientLogger,
+    logError: mockLogError,
+    logAuthEvent: mockLogAuthEvent,
+  }
+})
 
 // Mock UI components
 jest.mock('@/components/ui/button', () => ({
@@ -72,6 +75,12 @@ jest.mock('@/components/ui/alert', () => ({
   AlertDescription: ({ children, ...props }: any) => <div {...props}>{children}</div>,
 }))
 
+// Mock Next.js Image
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: (props: any) => <div data-testid="background-image" {...props} />,
+}))
+
 // Mock Lucide icons
 jest.mock('lucide-react', () => ({
   Loader2: () => <div data-testid="loader-icon">Loading...</div>,
@@ -80,27 +89,31 @@ jest.mock('lucide-react', () => ({
   Mail: () => <div data-testid="mail-icon">Mail</div>,
   Eye: () => <div data-testid="eye-icon">Eye</div>,
   EyeOff: () => <div data-testid="eye-off-icon">EyeOff</div>,
+  Brain: () => <div data-testid="brain-icon">Brain</div>,
+  Sparkles: () => <div data-testid="sparkles-icon">Sparkles</div>,
 }))
 
 describe('LoginPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     // Reset window.location.origin
-    Object.defineProperty(window, 'location', {
-      value: { origin: 'http://localhost:3000' },
-      writable: true,
-    })
+    delete (global as any).window
+    ;(global as any).window = {
+      location: { origin: 'http://localhost:3000' },
+    }
   })
 
   describe('Component Rendering', () => {
-    it('renders the login page with all required elements in login mode', () => {
+    it('renders the login page with background image and glass styling', () => {
       render(<LoginPage />)
-      
+
+      expect(screen.getByTestId('background-image')).toBeInTheDocument()
       expect(screen.getByText('Welcome Back')).toBeInTheDocument()
       expect(screen.getByText('Sign in to your AI Fitness Coach account')).toBeInTheDocument()
       expect(screen.getByLabelText('Email address')).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+      expect(screen.getByTestId('brain-icon')).toBeInTheDocument()
     })
 
     it('renders login form fields with correct attributes', () => {
@@ -129,14 +142,15 @@ describe('LoginPage', () => {
 
     it('switches to signup mode when sign up button is clicked', () => {
       render(<LoginPage />)
-      
+
       const signUpButton = screen.getByRole('button', { name: /sign up/i })
       fireEvent.click(signUpButton)
-      
+
       expect(screen.getByText('Create Account')).toBeInTheDocument()
       expect(screen.getByText('Join AI Fitness Coach and start your fitness journey')).toBeInTheDocument()
       expect(screen.getByLabelText('Full Name')).toBeInTheDocument()
       expect(screen.getByLabelText('Confirm Password')).toBeInTheDocument()
+      expect(screen.getByTestId('brain-icon')).toBeInTheDocument()
     })
 
     it('renders password visibility toggle buttons', () => {
@@ -448,48 +462,50 @@ describe('LoginPage', () => {
 
   describe('Loading States', () => {
     it('shows loading state during login', async () => {
-      mockSignInWithPassword.mockImplementation(() => 
+      mockSignInWithPassword.mockImplementation(() =>
         new Promise(resolve => setTimeout(() => resolve({ data: { user: null }, error: null }), 100))
       )
-      
+
       render(<LoginPage />)
-      
+
       // Fill in form
       fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'test@example.com' } })
       fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } })
-      
+
       // Submit form
       const submitButton = screen.getByRole('button', { name: /sign in/i })
       fireEvent.click(submitButton)
-      
+
       expect(screen.getByText('Signing in...')).toBeInTheDocument()
       expect(screen.getByTestId('loader-icon')).toBeInTheDocument()
+      expect(screen.getByTestId('sparkles-icon')).toBeInTheDocument()
       expect(submitButton).toBeDisabled()
     })
 
     it('shows loading state during signup', async () => {
-      mockSignUp.mockImplementation(() => 
+      mockSignUp.mockImplementation(() =>
         new Promise(resolve => setTimeout(() => resolve({ data: { user: null }, error: null }), 100))
       )
-      
+
       render(<LoginPage />)
-      
+
       // Switch to signup mode
       const signUpButton = screen.getByRole('button', { name: /sign up/i })
       fireEvent.click(signUpButton)
-      
+
       // Fill in form
       fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } })
       fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'test@example.com' } })
       fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password123' } })
       fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Password123' } })
-      
+
       // Submit form
       const submitButton = screen.getByRole('button', { name: /create account/i })
       fireEvent.click(submitButton)
-      
+
       expect(screen.getByText('Creating account...')).toBeInTheDocument()
       expect(screen.getByTestId('loader-icon')).toBeInTheDocument()
+      expect(screen.getByTestId('sparkles-icon')).toBeInTheDocument()
       expect(submitButton).toBeDisabled()
     })
 

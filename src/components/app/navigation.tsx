@@ -50,20 +50,20 @@ export function AppNavigation({ user }: AppNavigationProps) {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
-            <Link href="/app" className="text-xl font-bold text-blue-600">
+            <Link href="/app" className="text-xl font-bold text-foreground">
               AI Fitness Coach
             </Link>
             
             <div className="hidden md:flex items-center space-x-6">
-              <Link href="/app" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
+              <Link href="/app" className="flex items-center space-x-2 text-muted-foreground hover:text-foreground">
                 <Activity className="w-4 h-4" />
                 <span>Dashboard</span>
               </Link>
-              <Link href="/app/calorie-tracker" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
+              <Link href="/app/calorie-tracker" className="flex items-center space-x-2 text-muted-foreground hover:text-foreground">
                 <Camera className="w-4 h-4" />
                 <span>Calorie Tracker</span>
               </Link>
-              <Link href="/app/profile" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
+              <Link href="/app/profile" className="flex items-center space-x-2 text-muted-foreground hover:text-foreground">
                 <UserIcon className="w-4 h-4" />
                 <span>Profile</span>
               </Link>
