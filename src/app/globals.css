@@ -113,7 +113,6 @@
 
 @layer base {
   * {
-    @apply border;
     outline-color: var(--ring);
   }
   body {
