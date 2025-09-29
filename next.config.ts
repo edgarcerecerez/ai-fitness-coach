@@ -15,6 +15,15 @@ const nextConfig: NextConfig = {
     },
   },
 
+  // Configure webpack to handle Tailwind 4 properly
+  webpack: (config) => {
+    config.experiments = {
+      ...config.experiments,
+      topLevelAwait: true,
+    };
+    return config;
+  },
+
   // Transpile specific packages that need babel
   transpilePackages: [],
   

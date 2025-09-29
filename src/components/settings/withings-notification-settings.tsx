@@ -76,8 +76,8 @@ export function WithingsNotificationSettings({ isConnected }: WithingsNotificati
         measurement_notifications: preferences?.measurement_notifications ?? true,
         achievement_notifications: preferences?.achievement_notifications ?? true,
         sync_failure_notifications: preferences?.sync_failure_notifications ?? true,
-        notification_methods: Array.isArray(preferences?.notification_methods) && preferences?.notification_methods.length > 0
-          ? [...preferences.notification_methods]
+        notification_methods: Array.isArray(preferences?.notification_methods) && (preferences?.notification_methods?.length ?? 0) > 0
+          ? [...(preferences?.notification_methods ?? [])]
           : ['push'],
         quiet_hours_start: preferences?.quiet_hours_start ?? '',
         quiet_hours_end: preferences?.quiet_hours_end ?? '',
@@ -149,8 +149,8 @@ export function WithingsNotificationSettings({ isConnected }: WithingsNotificati
         measurement_notifications: savedPref?.measurement_notifications ?? form.measurement_notifications,
         achievement_notifications: savedPref?.achievement_notifications ?? form.achievement_notifications,
         sync_failure_notifications: savedPref?.sync_failure_notifications ?? form.sync_failure_notifications,
-        notification_methods: Array.isArray(savedPref?.notification_methods) && savedPref?.notification_methods.length > 0
-          ? [...savedPref.notification_methods]
+        notification_methods: Array.isArray(savedPref?.notification_methods) && (savedPref?.notification_methods?.length ?? 0) > 0
+          ? [...(savedPref?.notification_methods ?? [])]
           : form.notification_methods,
         quiet_hours_start: savedPref?.quiet_hours_start ?? form.quiet_hours_start,
         quiet_hours_end: savedPref?.quiet_hours_end ?? form.quiet_hours_end,

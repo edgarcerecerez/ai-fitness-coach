@@ -15,7 +15,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="border-b border-border/20 bg-background/10 backdrop-blur-2xl sticky top-0 z-50 supports-[backdrop-filter]:bg-background/10">
+      <nav className="border-b border/20 bg-background/10 backdrop-blur-2xl sticky top-0 z-50 supports-[backdrop-filter]:bg-background/10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -389,7 +389,7 @@ export default function HomePage() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
+          <div className="border-t border mt-8 pt-8 text-center text-muted-foreground">
             <p>&copy; 2024 AI Fitness Coach. Open source and built with ❤️ for your success.</p>
           </div>
         </div>
