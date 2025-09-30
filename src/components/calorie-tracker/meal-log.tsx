@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -19,6 +19,7 @@ import { Trash2, Clock } from 'lucide-react'
 import { useState } from 'react'
 import { logError } from '@/lib/logger'
 import Image from 'next/image'
+import { getConfidenceColor as getConfidenceColorHelper } from '@/lib/nutrition-helpers'
 
 interface NutritionLog {
   id: string
@@ -71,9 +72,7 @@ export function MealLog({ data }: MealLogProps) {
 
   const getConfidenceColor = (score: number | null) => {
     if (!score) return 'bg-gray-500'
-    if (score >= 0.8) return 'bg-green-500'
-    if (score >= 0.6) return 'bg-yellow-500'
-    return 'bg-red-500'
+    return getConfidenceColorHelper(score).replace('text-', 'bg-')
   }
 
   if (data.length === 0) {

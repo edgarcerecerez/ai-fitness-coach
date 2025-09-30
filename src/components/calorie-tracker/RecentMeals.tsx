@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { Clock, Eye } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { getConfidenceBadgeVariant, getConfidenceText } from '@/lib/nutrition-helpers';
 
 interface Meal {
   readonly id: string;
@@ -27,9 +28,7 @@ interface RecentMealsProps {
 }
 
 function getConfidenceBadge(score: number) {
-  if (score >= 0.8) return <Badge className="bg-green-100 text-green-800">High</Badge>;
-  if (score >= 0.6) return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-  return <Badge className="bg-red-100 text-red-800">Low</Badge>;
+  return <Badge variant={getConfidenceBadgeVariant(score)}>{getConfidenceText(score)}</Badge>;
 }
 
 function viewMeal(router: ReturnType<typeof useRouter>, mealId: string) {

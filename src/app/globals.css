@@ -219,3 +219,9 @@
     background: linear-gradient(15deg, #18251d 0%, #73ab84 50%, #cce0d4 100%);
   }
 }
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

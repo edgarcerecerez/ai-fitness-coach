@@ -4,15 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Brain, 
-  CheckCircle, 
-  AlertTriangle, 
+import {
+  Brain,
+  CheckCircle,
+  AlertTriangle,
   RefreshCw,
   Eye,
   TrendingUp,
   Info
 } from 'lucide-react';
+import {
+  getConfidenceColor as getConfidenceColorHelper,
+  getConfidenceText as getConfidenceTextHelper
+} from '@/lib/nutrition-helpers';
 
 interface AIAnalysisProps {
   readonly log: {
@@ -36,15 +40,11 @@ interface AIAnalysisProps {
 }
 
 export function getConfidenceColor(score: number): string {
-  if (score >= 0.8) return 'bg-green-500';
-  if (score >= 0.6) return 'bg-yellow-500';
-  return 'bg-red-500';
+  return getConfidenceColorHelper(score).replace('text-', 'bg-')
 }
 
 export function getConfidenceText(score: number): string {
-  if (score >= 0.8) return 'High Confidence';
-  if (score >= 0.6) return 'Medium Confidence';
-  return 'Low Confidence';
+  return getConfidenceTextHelper(score)
 }
 
 export function getStatusIcon(status: string | 'completed' | 'processing' | 'failed') {

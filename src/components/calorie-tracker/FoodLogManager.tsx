@@ -9,14 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createClient } from '@/utils/supabase/client';
 import { format } from 'date-fns';
-import { 
-  Search, 
-  Calendar, 
-  Edit, 
-  Trash2, 
+import {
+  Search,
+  Calendar,
+  Edit,
+  Trash2,
   Check,
   X
 } from 'lucide-react';
+import { getConfidenceBadgeVariant, getConfidenceText } from '@/lib/nutrition-helpers';
 
 interface FoodLog {
   readonly id: string;
@@ -195,9 +196,7 @@ export function FoodLogManager() {
   };
 
   const getConfidenceBadge = (score: number) => {
-    if (score >= 0.8) return <Badge className="bg-green-100 text-green-800">High</Badge>;
-    if (score >= 0.6) return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-    return <Badge className="bg-red-100 text-red-800">Low</Badge>;
+    return <Badge variant={getConfidenceBadgeVariant(score)}>{getConfidenceText(score)}</Badge>;
   };
 
   return (
