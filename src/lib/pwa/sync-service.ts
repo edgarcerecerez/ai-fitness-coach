@@ -285,3 +285,8 @@ export function getSyncService(): SyncService {
   }
   return syncServiceInstance;
 }
+
+// Legacy export for backward compatibility
+export function syncService(): SyncService {
+  return getSyncService();
+}
