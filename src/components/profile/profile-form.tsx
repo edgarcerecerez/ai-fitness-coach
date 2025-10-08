@@ -52,9 +52,11 @@ export function ProfileForm({ user, initialProfile, onSuccess }: ProfileFormProp
   const [heightCm, setHeightCm] = useState(initialProfile?.height_cm?.toString() || '')
   const [weightKg, setWeightKg] = useState(initialProfile?.weight_kg?.toString() || '')
   const [activityLevel, setActivityLevel] = useState<ActivityLevel | ''>(initialProfile?.activity_level || '')
-  const [fitnessGoals, setFitnessGoals] = useState<FitnessGoal[]>(initialProfile?.fitness_goals || [])
+  const [fitnessGoals, setFitnessGoals] = useState<FitnessGoal[]>(
+    [...(initialProfile?.fitness_goals || [])]
+  )
   const [dietaryPreferences, setDietaryPreferences] = useState<DietaryPreference[]>(
-    initialProfile?.dietary_preferences || []
+    [...(initialProfile?.dietary_preferences || [])]
   )
   const [targetCalories, setTargetCalories] = useState(
     initialProfile?.target_daily_calories?.toString() || ''
