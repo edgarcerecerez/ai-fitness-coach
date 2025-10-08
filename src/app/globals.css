@@ -224,4 +224,22 @@
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Touch target only on mobile, normal on desktop */
+  .touch-target-mobile {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  @media (min-width: 768px) {
+    .touch-target-mobile {
+      min-height: auto;
+      min-width: auto;
+    }
+  }
 }

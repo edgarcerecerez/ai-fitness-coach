@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,7 +29,7 @@ export function WithingsSyncStatus() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  async function setupWithingsRealtime(): Promise<RealtimeChannel | null> {
+  const setupWithingsRealtime = useCallback(async (): Promise<RealtimeChannel | null> => {
     // Get current user
     const {
       data: { user },
@@ -96,7 +96,7 @@ export function WithingsSyncStatus() {
       .subscribe();
 
     return channel;
-  }
+  }, [supabase]);
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
@@ -116,7 +116,7 @@ export function WithingsSyncStatus() {
         supabase.removeChannel(channel);
       }
     };
-  }, [supabase, setupWithingsRealtime]);
+  }, [setupWithingsRealtime, supabase]);
 
 
   const getStatusIcon = (status: SyncLog['status']) => {

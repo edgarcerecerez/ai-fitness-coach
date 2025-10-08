@@ -209,7 +209,7 @@ export function FoodLogManager() {
           {/* Filters */}
           <div className="flex gap-4 mb-6">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search food items..."
                 value={searchTerm}
@@ -218,7 +218,7 @@ export function FoodLogManager() {
               />
             </div>
             <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 type="date"
                 value={dateFilter}
@@ -231,21 +231,21 @@ export function FoodLogManager() {
           {/* Food Logs */}
           {loading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
           ) : (
             <div className="space-y-4">
               {filteredLogs.map((log) => (
-                <Card key={log.id} className="border-l-4 border-blue-500">
+                <Card key={log.id} className="border-l-4 border-primary">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground">
                           {format(new Date(log.created_at), 'MMM d, yyyy • h:mm a')}
                         </div>
                         {getConfidenceBadge(log.confidence_score)}
                         {log.processing_status === 'pending' && (
-                          <Badge className="bg-blue-100 text-blue-800">Processing</Badge>
+                          <Badge variant="info">Processing</Badge>
                         )}
                       </div>
                       <div className="flex gap-2">
@@ -312,7 +312,7 @@ export function FoodLogManager() {
                                 }}
                                 placeholder="Protein"
                               />
-                              <div className="text-gray-600">
+                              <div className="text-muted-foreground">
                                 C: {item.carbs_g}g | F: {item.fat_g}g
                               </div>
                             </div>
@@ -338,12 +338,12 @@ export function FoodLogManager() {
                         </div>
                       ) : (
                         log.food_items?.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                          <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
                             <div>
                               <span className="font-medium">{item.name}</span>
-                              <span className="text-gray-500 ml-2">({item.quantity})</span>
+                              <span className="text-muted-foreground ml-2">({item.quantity})</span>
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-muted-foreground">
                               {item.calories} cal | P: {item.protein_g}g | C: {item.carbs_g}g | F: {item.fat_g}g
                             </div>
                           </div>
@@ -354,13 +354,13 @@ export function FoodLogManager() {
                     {/* Total Calories */}
                     <div className="flex justify-between items-center font-semibold text-lg">
                       <span>Total Calories:</span>
-                      <span className="text-orange-600">{log.total_calories}</span>
+                      <span className="text-chart-4">{log.total_calories}</span>
                     </div>
 
                     {/* Notes */}
                     {log.notes && (
-                      <div className="mt-3 p-2 bg-blue-50 rounded">
-                        <div className="text-sm text-gray-600">Notes:</div>
+                      <div className="mt-3 p-2 bg-muted rounded">
+                        <div className="text-sm text-muted-foreground">Notes:</div>
                         <div className="text-sm">{log.notes}</div>
                       </div>
                     )}

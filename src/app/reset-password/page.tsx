@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { StatusAlert } from "@/components/ui/status-alert"
 import { Loader2, Lock, Eye, EyeOff, CheckCircle } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -283,19 +283,15 @@ function ResetPasswordContent() {
           </form>
 
           {message && (
-            <Alert
-              className={`mt-4 ${
-                message.type === "error" ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"
-              }`}
-            >
-              <AlertDescription className={message.type === "error" ? "text-red-800" : "text-green-800"}>
-                {message.text}
-              </AlertDescription>
-            </Alert>
+            <StatusAlert
+              variant={message.type}
+              message={message.text}
+              className="mt-4"
+            />
           )}
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+            <Link href="/login" className="text-sm text-primary hover:text-primary/80 hover:underline">
               Back to Login
             </Link>
           </div>
@@ -307,12 +303,12 @@ function ResetPasswordContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center app-gradient-bg p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-              <Loader2 className="w-6 h-6 text-white animate-spin" />
+            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-primary-foreground animate-spin" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Loading...</CardTitle>
