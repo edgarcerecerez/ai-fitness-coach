@@ -287,6 +287,4 @@ export function getSyncService(): SyncService {
 }
 
 // Legacy export for backward compatibility
-export function syncService(): SyncService {
-  return getSyncService();
-}
+export const syncService = typeof window !== 'undefined' ? getSyncService() : null;
