@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 interface MealLogData {
   meal_name?: string;
@@ -88,6 +88,15 @@ export class SyncService {
     }
   }
 
+  async startAutoSync() {
+    // Initialize if not already done
+    if (!this.supabase) {
+      await this.init();
+    }
+    // Auto-sync is already handled by init() through event listeners
+    console.log('Auto-sync already active through event listeners');
+  }
+
   destroy() {
     if (this.realtimeChannel && this.supabase) {
       this.supabase.removeChannel(this.realtimeChannel);
@@ -153,9 +162,9 @@ export class SyncService {
           if (change.type === 'meal_log') {
             await this.supabase.from('nutrition_logs').insert(change.data);
           } else if (change.type === 'photo_upload') {
-            await this.syncPhotoUpload(this.supabase, change.data);
+            await this.syncPhotoUpload(this.supabase, change.data as PhotoUploadData);
           } else if (change.type === 'user_action') {
-            await this.syncUserAction(this.supabase, change.data);
+            await this.syncUserAction(this.supabase, change.data as UserActionData);
           }
 
           // Mark as synced by creating new object
@@ -246,7 +255,7 @@ export class SyncService {
 
   async queuePhotoUpload(photoData: PhotoUploadData): Promise<string | null> {
     // If online, upload immediately and return signed URL
-    if (this.isOnline) {
+    if (this.isOnline && this.supabase) {
       try {
         return await this.syncPhotoUpload(this.supabase, photoData);
       } catch (error) {

@@ -63,7 +63,7 @@ export function WithingsSyncStatus() {
         (payload) => {
           // Type guard for realtime payload
           function isValidSyncLog(obj: unknown): obj is SyncLog {
-            return (
+            return !!(
               obj &&
               typeof obj === 'object' &&
               obj !== null &&
@@ -77,12 +77,12 @@ export function WithingsSyncStatus() {
 
           if (payload.eventType === 'INSERT' && payload.new && isValidSyncLog(payload.new)) {
             // New sync started
-            setSyncLogs((prev) => [payload.new, ...prev].slice(0, 10));
+            setSyncLogs((prev) => [payload.new as SyncLog, ...prev].slice(0, 10));
           } else if (payload.eventType === 'UPDATE' && payload.new && isValidSyncLog(payload.new)) {
             // Sync status updated (completed or failed)
             setSyncLogs((prev) =>
               prev.map((log) =>
-                log.id === payload.new.id ? payload.new : log
+                log.id === (payload.new as SyncLog).id ? (payload.new as SyncLog) : log
               )
             );
           } else if (payload.eventType === 'DELETE' && payload.old && typeof payload.old.id === 'string') {
