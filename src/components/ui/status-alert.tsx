@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 interface StatusAlertProps {
   readonly variant: "error" | "success" | "info" | "warning"
   readonly message: string
+  readonly title?: string
   readonly className?: string
 }
 
@@ -26,7 +27,7 @@ const variants = {
   },
 } as const
 
-export function StatusAlert({ variant, message, className }: StatusAlertProps) {
+export function StatusAlert({ variant, message, title, className }: StatusAlertProps) {
 
   const config = variants[variant]
   const Icon = config.icon
@@ -40,7 +41,10 @@ export function StatusAlert({ variant, message, className }: StatusAlertProps) {
       )}
     >
       <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" />
-      <p className="text-sm leading-relaxed">{message}</p>
+      <div className="flex-1">
+        {title && <h4 className="font-medium text-sm mb-1">{title}</h4>}
+        <p className="text-sm leading-relaxed">{message}</p>
+      </div>
     </div>
   )
 }
