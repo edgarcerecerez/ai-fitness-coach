@@ -37,5 +37,5 @@ export const DIETARY_PREFERENCES = [
 
 export type GenderOption = typeof GENDER_OPTIONS[number]['value']
 export type ActivityLevel = typeof ACTIVITY_LEVELS[number]['value']
-export type FitnessGoal = typeof FITNESS_GOALS[number]
-export type DietaryPreference = typeof DIETARY_PREFERENCES[number]['value']
+export type FitnessGoal = 'Lose weight' | 'Gain muscle' | 'Maintain weight' | 'Improve endurance' | 'Improve flexibility' | 'General health' | 'Better sleep' | 'Stress management'
+export type DietaryPreference = 'none' | 'vegetarian' | 'vegan' | 'pescatarian' | 'keto' | 'paleo' | 'gluten_free' | 'dairy_free'
