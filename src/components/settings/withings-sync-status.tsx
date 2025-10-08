@@ -63,10 +63,9 @@ export function WithingsSyncStatus() {
         (payload) => {
           // Type guard for realtime payload
           function isValidSyncLog(obj: unknown): obj is SyncLog {
-            return !!(
-              obj &&
-              typeof obj === 'object' &&
+            return (
               obj !== null &&
+              typeof obj === 'object' &&
               typeof (obj as SyncLog).id === 'string' &&
               typeof (obj as SyncLog).user_id === 'string' &&
               ['weight', 'activity', 'sleep'].includes((obj as SyncLog).sync_type) &&
