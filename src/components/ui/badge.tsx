@@ -17,6 +17,9 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        success: "border-transparent bg-chart-1/10 text-chart-1 hover:bg-chart-1/20", // Green from chart colors
+        warning: "border-transparent bg-chart-4/10 text-chart-4 hover:bg-chart-4/20", // Yellow
+        info: "border-transparent bg-chart-2/10 text-chart-2 hover:bg-chart-2/20", // Blue
       },
     },
     defaultVariants: {

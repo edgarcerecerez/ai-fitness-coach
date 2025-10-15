@@ -27,19 +27,29 @@ CREATE OR REPLACE TRIGGER update_nutrition_logs_updated_at
 CREATE INDEX IF NOT EXISTS idx_nutrition_logs_user_id_logged_at 
 ON public.nutrition_logs(user_id, logged_at DESC);
 
--- Verify RLS policies exist for nutrition_logs
-CREATE POLICY IF NOT EXISTS "Users can view their own nutrition logs" 
-ON public.nutrition_logs FOR SELECT 
-USING (auth.uid() = user_id);
+-- Ensure RLS is enabled (idempotent)
+ALTER TABLE public.nutrition_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Users can insert their own nutrition logs" 
-ON public.nutrition_logs FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can update their own nutrition logs" 
-ON public.nutrition_logs FOR UPDATE 
-USING (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can delete their own nutrition logs" 
-ON public.nutrition_logs FOR DELETE 
-USING (auth.uid() = user_id);
+-- Validate that required policies exist; fail-fast if any are missing
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname='public' AND tablename='nutrition_logs'
+      AND policyname='Users can view their own nutrition logs'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname='public' AND tablename='nutrition_logs'
+      AND policyname='Users can insert their own nutrition logs'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname='public' AND tablename='nutrition_logs'
+      AND policyname='Users can update their own nutrition logs'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname='public' AND tablename='nutrition_logs'
+      AND policyname='Users can delete their own nutrition logs'
+  ) THEN
+    RAISE EXCEPTION 'Missing one or more RLS policies on public.nutrition_logs';
+  END IF;
+END $$;

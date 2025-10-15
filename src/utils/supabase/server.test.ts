@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, jest as vi } from '@jest/globals'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { createClient, getUser, getSession } from './server'

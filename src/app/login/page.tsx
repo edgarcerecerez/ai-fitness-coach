@@ -1,26 +1,21 @@
 "use client"
 
 import type React from "react"
-
+import { Suspense } from "react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, User, Lock, Mail, Eye, EyeOff } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Loader2, User, Lock, Mail, Eye, EyeOff, Brain, Sparkles } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { clientLogger, logError, logAuthEvent } from "@/lib/logger"
+import Image from "next/image"
 
 type AuthMode = "login" | "signup"
 
-/**
- * Displays a user authentication page with login, signup, and password reset features integrated with Supabase.
- *
- * Provides forms for users to sign in, create an account, or request a password reset. Includes client-side validation for email, password, and full name, manages UI state for loading and feedback messages, and handles authentication flows. Redirects users to their profile page upon successful login and prompts email confirmation after signup.
- */
-export default function LoginPage() {
+function LoginPageContent() {
   const [mode, setMode] = useState<AuthMode>("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -31,6 +26,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectParam = searchParams?.get('redirectTo')
+  const target = redirectParam && redirectParam.startsWith('/') ? redirectParam : '/app'
 
   // Log page initialization
   useEffect(() => {
@@ -226,12 +224,12 @@ export default function LoginPage() {
             email: data?.user?.email ? `${data.user.email.substring(0, 3)}***@${data.user.email.split('@')[1]}` : 'unknown',
             sessionId: data?.session?.access_token ? 'present' : 'missing'
           })
-          clientLogger.info('Login successful, redirecting to profile', {
+          clientLogger.info('Login successful, redirecting to app dashboard', {
             userId: data?.user?.id,
             hasSession: !!data?.session
           })
-          // Redirect to profile on successful login
-          router.push("/profile")
+          // Redirect to app dashboard on successful login
+          router.push(target)
         }
       }
     } catch (error) {
@@ -361,30 +359,47 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Image */}
+      <Image
+        src="/images/login-background.jpeg"
+        alt="Fitness background"
+        fill
+        className="object-cover"
+        priority
+      />
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"></div>
+
+      {/* Decorative Elements */}
+      <div className="absolute -top-48 left-1/2 h-[28rem] w-[35rem] -translate-x-1/2 bg-white/10 blur-3xl opacity-70"></div>
+      <div className="absolute bottom-[-6rem] right-[-4rem] h-72 w-72 bg-blue-400/20 blur-3xl rounded-full opacity-80"></div>
+
+      {/* Main Content */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md glass-panel p-8">
+          <div className="space-y-1 text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center">
+                <Brain className="w-6 h-6 text-primary-foreground" />
+              </div>
             </div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {mode === "login" ? "Welcome Back" : "Create Account"}
+            </h1>
+            <p className="text-muted-foreground">
+              {mode === "login"
+                ? "Sign in to your AI Fitness Coach account"
+                : "Join AI Fitness Coach and start your fitness journey"}
+            </p>
           </div>
-          <CardTitle className="text-2xl font-bold">
-            {mode === "login" ? "Welcome Back" : "Create Account"}
-          </CardTitle>
-          <CardDescription>
-            {mode === "login"
-              ? "Sign in to your AI Fitness Coach account"
-              : "Join AI Fitness Coach and start your fitness journey"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName" className="text-card-foreground">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="fullName"
                     type="text"
@@ -396,16 +411,16 @@ export default function LoginPage() {
                     }}
                     required
                     disabled={loading}
-                    className="pl-10"
+                    className="pl-10 bg-secondary/40 border-secondary/60 text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-secondary/60"
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email" className="text-card-foreground">Email address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
@@ -413,22 +428,22 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value)
-                    clientLogger.debug('Email field updated', { 
+                    clientLogger.debug('Email field updated', {
                       hasValue: !!e.target.value,
                       isValidFormat: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.target.value)
                     })
                   }}
                   required
                   disabled={loading}
-                  className="pl-10"
+                    className="pl-10 bg-secondary/40 border-secondary/60 text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-secondary/60"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-card-foreground">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -436,7 +451,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value)
-                    clientLogger.debug('Password field updated', { 
+                    clientLogger.debug('Password field updated', {
                       hasValue: !!e.target.value,
                       length: e.target.value.length,
                       meetsMinLength: e.target.value.length >= 8
@@ -444,28 +459,28 @@ export default function LoginPage() {
                   }}
                   required
                   disabled={loading}
-                  className="pl-10 pr-10"
+                  className="pl-10 bg-secondary/40 border-secondary/60 text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-secondary/60"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-accent-foreground"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {mode === "signup" && (
-                <p className="text-xs text-gray-600">
-                  Password must be at least 8 characters with uppercase, lowercase letters and numbers
-                </p>
+                  <p className="text-xs text-muted-foreground">
+                    Password must be at least 8 characters with uppercase, lowercase letters and numbers
+                  </p>
               )}
             </div>
 
             {mode === "signup" && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" className="text-card-foreground">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
@@ -473,19 +488,19 @@ export default function LoginPage() {
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value)
-                      clientLogger.debug('Confirm password field updated', { 
+                      clientLogger.debug('Confirm password field updated', {
                         hasValue: !!e.target.value,
                         matchesPassword: e.target.value === password
                       })
                     }}
                     required
                     disabled={loading}
-                    className="pl-10 pr-10"
+                    className="pl-10 bg-secondary/40 border-secondary/60 text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-secondary/60"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-accent-foreground"
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -493,14 +508,21 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading || !isFormValid()}>
+            <Button
+              type="submit"
+              className="w-full glass-button text-lg px-10 py-6 rounded-full font-semibold tracking-wide"
+              disabled={loading || !isFormValid()}
+            >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   {mode === "signup" ? "Creating account..." : "Signing in..."}
                 </>
               ) : (
-                mode === "signup" ? "Create Account" : "Sign In"
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {mode === "signup" ? "Create Account" : "Sign In"}
+                </>
               )}
             </Button>
           </form>
@@ -508,10 +530,12 @@ export default function LoginPage() {
           {message && (
             <Alert
               className={`mt-4 ${
-                message.type === "error" ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"
+                message.type === "error"
+                  ? "border-red-200/50 bg-red-50/10 backdrop-blur-sm"
+                  : "border-green-200/50 bg-green-50/10 backdrop-blur-sm"
               }`}
             >
-              <AlertDescription className={message.type === "error" ? "text-red-800" : "text-green-800"}>
+              <AlertDescription className={message.type === "error" ? "text-destructive" : "text-primary"}>
                 {message.text}
               </AlertDescription>
             </Alert>
@@ -524,21 +548,21 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleForgotPassword}
                   disabled={loading}
-                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  className="text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
                 >
                   Forgot your password?
                 </button>
               </div>
             )}
 
-            <div className="text-center text-sm text-gray-600">
+            <div className="text-center text-sm text-muted-foreground">
               {mode === "login" ? (
                 <>
                   Don&apos;t have an account?{" "}
                   <button
                     type="button"
                     onClick={() => handleModeChange("signup")}
-                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                    className="text-primary hover:text-primary/80 hover:underline font-medium transition-colors"
                   >
                     Sign up
                   </button>
@@ -549,7 +573,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => handleModeChange("login")}
-                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                    className="text-primary hover:text-primary/80 hover:underline font-medium transition-colors"
                   >
                     Sign in
                   </button>
@@ -557,8 +581,39 @@ export default function LoginPage() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
+  )
+}
+
+/**
+ * Displays a user authentication page with login, signup, and password reset features integrated with Supabase.
+ *
+ * Provides forms for users to sign in, create an account, or request a password reset. Includes client-side validation for email, password, and full name, manages UI state for loading and feedback messages, and handles authentication flows. Redirects users to their profile page upon successful login and prompts email confirmation after signup.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen relative overflow-hidden">
+        <Image
+          src="/images/login-background.jpeg"
+          alt="Fitness background"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"></div>
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <div className="w-full max-w-md glass-panel p-8">
+            <div className="flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-card-foreground" />
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   )
 }
