@@ -1,7 +1,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { jest } from '@jest/globals'
 import '@testing-library/jest-dom'
-import Home from './page'
+// `src/app/page.tsx` is an async server component that redirects authed users
+// to /dashboard. The marketing UI lives in `<LandingPage />`, which is what
+// these client-side tests exercise.
+import { LandingPage as Home } from '@/components/landing-page'
 
 // Mock Next.js navigation
 jest.mock('next/navigation', () => ({
@@ -31,7 +34,7 @@ jest.mock('next/link', () => ({
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props: any) => (
-    // eslint-disable-next-line @next/next/no-img-element
+     
     <img {...props} alt={props.alt} />
   ),
 }))
