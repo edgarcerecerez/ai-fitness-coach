@@ -45,6 +45,9 @@ next-env.d.ts
 mcp.json
 .roo/*
 
+# Claude Code worktrees (transient agent worktrees)
+.claude/worktrees/
+
 # Added by Task Master AI
 # Logs
 logs
