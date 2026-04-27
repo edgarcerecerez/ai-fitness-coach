@@ -64,12 +64,16 @@ function configureVapid(): void {
 export function formatPushPayload(
   input: PushNotificationPayload
 ): FormattedPushPayload {
-  if (!input.title || typeof input.title !== 'string') {
+  if (
+    !input.title ||
+    typeof input.title !== 'string' ||
+    input.title.trim() === ''
+  ) {
     throw new Error('Push payload requires a non-empty title.')
   }
 
   return {
-    title: input.title,
+    title: input.title.trim(),
     body: input.body ?? '',
     url: input.url ?? '/',
     icon: input.icon,
@@ -112,38 +116,66 @@ export interface BulkSendResult {
 }
 
 /**
- * Sends a push notification to many subscriptions, swallowing per-target
- * failures so one bad endpoint doesn't fail the whole batch. Use the returned
- * results to identify subscriptions that should be deleted (HTTP 404 / 410).
+ * Maximum number of in-flight push sends in {@link sendPushNotificationToMany}.
+ * Exposed so tests can verify bounded concurrency behavior.
+ */
+export const PUSH_SEND_CONCURRENCY = 8
+
+async function sendOne(
+  sub: StoredPushSubscription,
+  formatted: string
+): Promise<BulkSendResult> {
+  try {
+    const res = await webpush.sendNotification(
+      toWebPushSubscription(sub),
+      formatted
+    )
+    return {
+      endpoint: sub.endpoint,
+      success: true,
+      statusCode: res.statusCode,
+    }
+  } catch (error) {
+    const err = error as { statusCode?: number; message?: string }
+    return {
+      endpoint: sub.endpoint,
+      success: false,
+      statusCode: err.statusCode,
+      error: err.message,
+    }
+  }
+}
+
+/**
+ * Sends a push notification to many subscriptions with bounded concurrency,
+ * swallowing per-target failures so one bad endpoint doesn't fail the whole
+ * batch. Use the returned results to identify subscriptions that should be
+ * deleted (HTTP 404 / 410).
+ *
+ * @param subscriptions - Stored push subscriptions to notify.
+ * @param payload - Notification payload.
+ * @param concurrency - Max in-flight sends. Defaults to {@link PUSH_SEND_CONCURRENCY}.
  */
 export async function sendPushNotificationToMany(
   subscriptions: StoredPushSubscription[],
-  payload: PushNotificationPayload
+  payload: PushNotificationPayload,
+  concurrency: number = PUSH_SEND_CONCURRENCY
 ): Promise<BulkSendResult[]> {
   configureVapid()
   const formatted = JSON.stringify(formatPushPayload(payload))
 
-  return Promise.all(
-    subscriptions.map(async (sub) => {
-      try {
-        const res = await webpush.sendNotification(
-          toWebPushSubscription(sub),
-          formatted
-        )
-        return {
-          endpoint: sub.endpoint,
-          success: true,
-          statusCode: res.statusCode,
-        }
-      } catch (error) {
-        const err = error as { statusCode?: number; message?: string }
-        return {
-          endpoint: sub.endpoint,
-          success: false,
-          statusCode: err.statusCode,
-          error: err.message,
-        }
-      }
-    })
-  )
+  const limit = Math.max(1, Math.floor(concurrency))
+  const results: BulkSendResult[] = new Array(subscriptions.length)
+
+  for (let i = 0; i < subscriptions.length; i += limit) {
+    const chunk = subscriptions.slice(i, i + limit)
+    const settled = await Promise.all(
+      chunk.map((sub) => sendOne(sub, formatted))
+    )
+    for (let j = 0; j < settled.length; j += 1) {
+      results[i + j] = settled[j]
+    }
+  }
+
+  return results
 }

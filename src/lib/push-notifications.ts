@@ -50,8 +50,7 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer | null): string {
-  if (!buffer) return ''
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   let binary = ''
   for (let i = 0; i < bytes.byteLength; i += 1) {
@@ -67,6 +66,18 @@ export function serializeSubscription(
 ): SerializedPushSubscription {
   const p256dhBuffer = subscription.getKey('p256dh')
   const authBuffer = subscription.getKey('auth')
+
+  if (
+    !p256dhBuffer ||
+    p256dhBuffer.byteLength === 0 ||
+    !authBuffer ||
+    authBuffer.byteLength === 0
+  ) {
+    throw new Error(
+      'Push subscription is missing required p256dh/auth keys.'
+    )
+  }
+
   return {
     endpoint: subscription.endpoint,
     keys: {
@@ -85,9 +96,39 @@ export async function requestPermission(): Promise<PushPermissionState> {
   return Notification.requestPermission()
 }
 
+const SERVICE_WORKER_READY_TIMEOUT_MS = 3000
+
 async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!isPushSupported()) return null
-  return (await navigator.serviceWorker.ready) ?? null
+
+  // Prefer an already-registered SW so we never block on `ready`.
+  const existing = await navigator.serviceWorker.getRegistration()
+  if (existing) return existing
+
+  // `ready` can hang forever if no SW has been registered yet, so race it
+  // against a short timeout and return null on timeout.
+  return Promise.race<ServiceWorkerRegistration | null>([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), SERVICE_WORKER_READY_TIMEOUT_MS)
+    ),
+  ])
+}
+
+async function extractFetchErrorDetails(response: Response): Promise<string> {
+  let text = ''
+  try {
+    text = await response.text()
+  } catch {
+    return `HTTP ${response.status}`
+  }
+  try {
+    const data = JSON.parse(text) as { error?: unknown }
+    if (typeof data?.error === 'string') return data.error
+  } catch {
+    // not JSON; fall through to raw text
+  }
+  return text || `HTTP ${response.status}`
 }
 
 /**
@@ -119,11 +160,15 @@ export async function subscribeToPush(
     }))
 
   const payload = serializeSubscription(subscription)
-  await fetch('/api/push/subscribe', {
+  const response = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
+  if (!response.ok) {
+    const detail = await extractFetchErrorDetails(response)
+    throw new Error(`Failed to persist push subscription: ${detail}`)
+  }
   return payload
 }
 
@@ -139,11 +184,15 @@ export async function unsubscribeFromPush(): Promise<boolean> {
   const subscription = await registration.pushManager.getSubscription()
   if (!subscription) return false
 
-  await fetch('/api/push/unsubscribe', {
+  const response = await fetch('/api/push/unsubscribe', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ endpoint: subscription.endpoint }),
   })
+  if (!response.ok) {
+    const detail = await extractFetchErrorDetails(response)
+    throw new Error(`Failed to remove push subscription: ${detail}`)
+  }
   return subscription.unsubscribe()
 }
 

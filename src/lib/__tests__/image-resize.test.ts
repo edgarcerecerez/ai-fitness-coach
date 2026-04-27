@@ -40,6 +40,20 @@ describe('calculateResizedDimensions', () => {
     expect(result.height).toBeGreaterThanOrEqual(1)
   })
 
+  it('never returns a zero edge for sub-pixel inputs (rounding floor)', () => {
+    // Both edges are < 0.5, so naive Math.round would yield 0.
+    const result = calculateResizedDimensions(0.4, 0.3, 2048)
+    expect(result.width).toBeGreaterThanOrEqual(1)
+    expect(result.height).toBeGreaterThanOrEqual(1)
+  })
+
+  it('clamps very small fractional dimensions when scaling down', () => {
+    // 0.4 * (10 / max(0.4, 0.3)) rounds to 0 without clamp.
+    const result = calculateResizedDimensions(0.4, 0.3, 0.1)
+    expect(result.width).toBeGreaterThanOrEqual(1)
+    expect(result.height).toBeGreaterThanOrEqual(1)
+  })
+
   it('throws when given non-finite dimensions', () => {
     expect(() => calculateResizedDimensions(Number.NaN, 100)).toThrow()
     expect(() => calculateResizedDimensions(100, Number.POSITIVE_INFINITY)).toThrow()

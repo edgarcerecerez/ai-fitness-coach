@@ -50,7 +50,10 @@ export function calculateResizedDimensions(
 
   const longest = Math.max(width, height)
   if (longest <= maxEdge) {
-    return { width: Math.round(width), height: Math.round(height) }
+    return {
+      width: Math.max(1, Math.round(width)),
+      height: Math.max(1, Math.round(height)),
+    }
   }
 
   const scale = maxEdge / longest

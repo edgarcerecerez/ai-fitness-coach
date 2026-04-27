@@ -18,8 +18,17 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  if (!body.endpoint) {
-    return NextResponse.json({ error: 'Missing endpoint' }, { status: 400 })
+  const endpoint =
+    typeof body.endpoint === 'string' ? body.endpoint.trim() : ''
+  if (endpoint === '') {
+    return NextResponse.json({ error: 'Invalid endpoint' }, { status: 400 })
+  }
+
+  try {
+    // Validate that endpoint is a parseable URL before hitting the DB.
+    new URL(endpoint)
+  } catch {
+    return NextResponse.json({ error: 'Invalid endpoint' }, { status: 400 })
   }
 
   const supabase = await createClient()
@@ -36,10 +45,14 @@ export async function DELETE(request: Request) {
     .from('push_subscriptions')
     .delete()
     .eq('user_id', user.id)
-    .eq('endpoint', body.endpoint)
+    .eq('endpoint', endpoint)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Failed to delete push subscription', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 
   return NextResponse.json({ success: true })

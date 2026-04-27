@@ -6,13 +6,15 @@ const MOBILE_QUERY = '(max-width: 768px)'
 
 /**
  * Returns `true` when the viewport matches a mobile breakpoint
- * (`(max-width: 768px)`). Returns `false` during SSR and on browsers without
- * `matchMedia`, then updates after hydration.
+ * (`(max-width: 768px)`), `false` for desktop, or `undefined` while the value
+ * has not yet been determined (SSR / pre-hydration). Callers should treat
+ * `undefined` as "not yet known" and avoid mounting layout-specific components
+ * until it resolves, otherwise mobile users will briefly render the desktop UI.
  *
  * @param query - Optional override for the media query.
  */
-export function useIsMobile(query: string = MOBILE_QUERY): boolean {
-  const [isMobile, setIsMobile] = useState(false)
+export function useIsMobile(query: string = MOBILE_QUERY): boolean | undefined {
+  const [isMobile, setIsMobile] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return

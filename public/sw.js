@@ -88,6 +88,9 @@ self.addEventListener('fetch', (event) => {
             return response
           })
           .catch(() => cached)
+        // Keep the SW alive until the background cache update finishes,
+        // even when we serve the cached response immediately.
+        event.waitUntil(networkPromise)
         return cached || networkPromise
       })()
     )
@@ -117,20 +120,34 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const targetUrl =
     (event.notification.data && event.notification.data.url) || '/'
+
   event.waitUntil(
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          if ('focus' in client) {
-            client.navigate(targetUrl)
-            return client.focus()
-          }
-        }
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(targetUrl)
-        }
-        return undefined
+    (async () => {
+      // Resolve absolute URL to compare safely against `client.url`.
+      let normalizedTarget
+      try {
+        normalizedTarget = new URL(targetUrl, self.location.origin).href
+      } catch {
+        normalizedTarget = targetUrl
+      }
+
+      const clientList = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
       })
+
+      // Prefer focusing an existing window already on the target URL
+      // rather than blindly navigating it away from the user's context.
+      for (const client of clientList) {
+        if (client.url === normalizedTarget && 'focus' in client) {
+          return client.focus()
+        }
+      }
+
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl)
+      }
+      return undefined
+    })()
   )
 })

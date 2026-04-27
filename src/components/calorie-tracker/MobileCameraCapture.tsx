@@ -42,6 +42,12 @@ export default function MobileCameraCapture({
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const latestStreamRef = useRef<MediaStream | null>(null)
+
+  // Keep the cleanup effect from capturing a stale `stream` value.
+  useEffect(() => {
+    latestStreamRef.current = stream
+  }, [stream])
 
   const initializeCamera = useCallback(async () => {
     setIsLoading(true)
@@ -85,9 +91,9 @@ export default function MobileCameraCapture({
   useEffect(() => {
     initializeCamera()
     return () => {
-      if (stream) CameraUtils.stopCameraStream(stream)
+      const current = latestStreamRef.current
+      if (current) CameraUtils.stopCameraStream(current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initializeCamera])
 
   const toggleTorch = async () => {
@@ -118,6 +124,34 @@ export default function MobileCameraCapture({
       const canvas = canvasRef.current
       const ctx = canvas.getContext('2d')
       if (!ctx) throw new Error('Canvas not supported')
+
+      // Guard: if metadata isn't ready yet, video dimensions are 0 and
+      // drawImage would produce a blank/invalid frame.
+      const HAVE_CURRENT_DATA = 2
+      if (
+        video.readyState < HAVE_CURRENT_DATA ||
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+      ) {
+        // Wait briefly for the next loaded frame, then retry once.
+        await new Promise<void>((resolve) => {
+          let timeoutId: ReturnType<typeof setTimeout> | null = null
+          const onReady = () => {
+            if (timeoutId !== null) clearTimeout(timeoutId)
+            video.removeEventListener('loadeddata', onReady)
+            resolve()
+          }
+          video.addEventListener('loadeddata', onReady, { once: true })
+          timeoutId = setTimeout(onReady, 500)
+        })
+        if (
+          video.videoWidth === 0 ||
+          video.videoHeight === 0 ||
+          video.readyState < HAVE_CURRENT_DATA
+        ) {
+          throw new Error('Camera not ready yet. Please try again.')
+        }
+      }
 
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
