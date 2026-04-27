@@ -3,8 +3,7 @@ import type { Config } from 'jest'
 /**
  * Minimal Jest configuration that lets us run the project's TypeScript test
  * files via ts-jest. We restrict discovery to the project's `src/` directory
- * (and root-level `middleware.test.ts`) so unrelated nested worktrees do not
- * collide with Jest's haste map.
+ * so unrelated nested worktrees do not collide with Jest's haste map.
  */
 const config: Config = {
   testEnvironment: 'node',

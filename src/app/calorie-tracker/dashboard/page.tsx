@@ -44,6 +44,9 @@ export default async function CalorieDashboardPage() {
 
   if (dbError) {
     console.error('Failed to load nutrition logs', dbError)
+    // Surface to the route error boundary instead of falling back to an empty
+    // array (which would misleadingly show "No meals logged yet").
+    throw new Error('Failed to load nutrition logs')
   }
 
   // Refresh signed URLs in a single batched call so thumbnails render even

@@ -84,13 +84,25 @@ export default function MealEditDialog({
       number
     >
 
-    // Keep the meal title in sync by updating the first food item's name. If
-    // the log has no food items, create a placeholder so the schema's NOT NULL
-    // food_items column stays valid.
+    // Keep the meal title and first item's macros in sync with the totals so
+    // the per-item view does not drift from the new totals. If the log has no
+    // food items, create a placeholder so the schema's NOT NULL food_items
+    // column stays valid.
     const trimmedName = form.name.trim()
+    const fiber_g = macro(log.total_fiber_g)
     const updatedItems = log.food_items?.length
       ? log.food_items.map((item, idx) =>
-          idx === 0 ? { ...item, name: trimmedName || item.name } : item
+          idx === 0
+            ? {
+                ...item,
+                name: trimmedName || item.name,
+                calories,
+                protein_g,
+                carbs_g,
+                fat_g,
+                fiber_g,
+              }
+            : item
         )
       : [
           {
@@ -100,7 +112,7 @@ export default function MealEditDialog({
             protein_g,
             carbs_g,
             fat_g,
-            fiber_g: macro(log.total_fiber_g),
+            fiber_g,
           },
         ]
 

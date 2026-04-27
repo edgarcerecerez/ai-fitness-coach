@@ -95,7 +95,10 @@ export function filterLogsInRange(
 function bucketLogsByDay(logs: NutritionLog[]): Map<string, NutritionLog[]> {
   const buckets = new Map<string, NutritionLog[]>()
   for (const log of logs) {
-    const key = toLocalDateKey(new Date(log.logged_at))
+    const date = new Date(log.logged_at)
+    // Skip unparseable timestamps so they do not produce `NaN-NaN-NaN` keys.
+    if (Number.isNaN(date.getTime())) continue
+    const key = toLocalDateKey(date)
     const bucket = buckets.get(key)
     if (bucket) bucket.push(log)
     else buckets.set(key, [log])

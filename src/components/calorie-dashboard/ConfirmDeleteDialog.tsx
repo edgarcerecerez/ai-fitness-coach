@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { NutritionLog } from '@/lib/nutrition-types'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -39,11 +39,18 @@ export default function ConfirmDeleteDialog({
     }
   }
 
+  // Block backdrop/Escape dismissal while a delete request is in flight.
+  // Use a stable no-op so Modal's effect dependency doesn't re-fire each render.
+  const handleClose = useCallback(
+    () => (deleting ? undefined : onClose()),
+    [deleting, onClose]
+  )
+
   return (
     <Modal
       title="Delete this meal?"
       description="This permanently removes the entry from your log."
-      onClose={onClose}
+      onClose={handleClose}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={deleting}>

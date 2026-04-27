@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -26,6 +26,9 @@ export default function Modal({
   onClose,
   footer,
 }: ModalProps) {
+  const titleId = useId()
+  const descriptionId = useId()
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -44,7 +47,8 @@ export default function Modal({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
     >
       <div
         className="absolute inset-0 bg-black/50"
@@ -54,11 +58,14 @@ export default function Modal({
       <div className="relative z-10 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl bg-background shadow-lg">
         <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
           <div>
-            <h2 id="modal-title" className="text-base font-semibold">
+            <h2 id={titleId} className="text-base font-semibold">
               {title}
             </h2>
             {description ? (
-              <p className="mt-0.5 text-sm text-muted-foreground">
+              <p
+                id={descriptionId}
+                className="mt-0.5 text-sm text-muted-foreground"
+              >
                 {description}
               </p>
             ) : null}

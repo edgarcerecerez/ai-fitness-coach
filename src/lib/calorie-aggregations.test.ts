@@ -174,6 +174,19 @@ describe('groupLogsByDay', () => {
   it('returns empty map for no logs', () => {
     expect(groupLogsByDay([]).size).toBe(0)
   })
+
+  it('skips logs with invalid logged_at instead of producing NaN keys', () => {
+    const logs = [
+      makeLog({ id: 'bad', logged_at: 'not-a-date' }),
+      makeLog({ id: 'good', logged_at: new Date(2026, 3, 5, 9).toISOString() }),
+    ]
+    const grouped = groupLogsByDay(logs)
+    const keys = Array.from(grouped.keys())
+    expect(keys).toEqual(['2026-04-05'])
+    for (const key of keys) {
+      expect(key).not.toContain('NaN')
+    }
+  })
 })
 
 describe('buildDailySeries', () => {

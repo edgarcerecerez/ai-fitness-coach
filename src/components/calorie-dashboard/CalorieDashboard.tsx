@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { NutritionLog } from '@/lib/nutrition-types'
 import {
@@ -61,6 +61,12 @@ export default function CalorieDashboard({
   const router = useRouter()
   const [range, setRange] = useState<RangeKey>('today')
   const [logs, setLogs] = useState<NutritionLog[]>(initialLogs)
+
+  // Re-sync local state when the server prop changes (e.g. after
+  // `router.refresh()` returns updated server-rendered logs).
+  useEffect(() => {
+    setLogs(initialLogs)
+  }, [initialLogs])
 
   const totals = useMemo(() => {
     const { start, end } = rangeBounds(range)

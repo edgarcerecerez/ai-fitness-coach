@@ -36,7 +36,9 @@ export default function CaloriesChart({ data }: CaloriesChartProps) {
     [data]
   )
 
-  const hasAny = chartData.some((d) => d.calories > 0)
+  // Use the raw, unrounded values so tiny positive totals (e.g. 0.4 kcal) do
+  // not collapse to 0 and trigger the empty state.
+  const hasAny = data.some((d) => d.calories > 0)
 
   if (!hasAny) {
     return (

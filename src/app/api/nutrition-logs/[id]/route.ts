@@ -45,15 +45,28 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    let body: NutritionLogPatchBody
+    let parsedBody: unknown
     try {
-      body = await request.json()
+      parsedBody = await request.json()
     } catch {
       return NextResponse.json(
         { error: 'Invalid JSON in request body' },
         { status: 400 }
       )
     }
+
+    if (
+      !parsedBody ||
+      typeof parsedBody !== 'object' ||
+      Array.isArray(parsedBody)
+    ) {
+      return NextResponse.json(
+        { error: 'Request body must be an object' },
+        { status: 400 }
+      )
+    }
+
+    const body = parsedBody as NutritionLogPatchBody
 
     const updates: Record<string, unknown> = {}
 
@@ -109,7 +122,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .eq('id', id)
       .eq('user_id', user.id)
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Database error (PATCH nutrition log):', error)
@@ -152,22 +165,53 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { error, count } = await supabase
+    // Look up the row first so we can clean up the linked storage object on
+    // success and return a clean 404 when the row is missing.
+    const { data: existing, error: fetchError } = await supabase
       .from('nutrition_logs')
-      .delete({ count: 'exact' })
+      .select('image_path')
       .eq('id', id)
       .eq('user_id', user.id)
+      .maybeSingle()
 
-    if (error) {
-      console.error('Database error (DELETE nutrition log):', error)
+    if (fetchError) {
+      console.error('Database error (DELETE nutrition log lookup):', fetchError)
       return NextResponse.json(
         { error: 'Failed to delete nutrition log' },
         { status: 500 }
       )
     }
 
-    if (count === 0) {
+    if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    const { error: deleteError } = await supabase
+      .from('nutrition_logs')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (deleteError) {
+      console.error('Database error (DELETE nutrition log):', deleteError)
+      return NextResponse.json(
+        { error: 'Failed to delete nutrition log' },
+        { status: 500 }
+      )
+    }
+
+    // Best-effort: remove the associated meal image so it does not orphan in
+    // storage. A failure here must not fail the request — the row is gone.
+    if (existing.image_path) {
+      const { error: storageError } = await supabase.storage
+        .from('meal-images')
+        .remove([existing.image_path])
+      if (storageError) {
+        console.error(
+          'Storage cleanup failed (DELETE nutrition log):',
+          storageError
+        )
+      }
     }
 
     return NextResponse.json({ success: true })
