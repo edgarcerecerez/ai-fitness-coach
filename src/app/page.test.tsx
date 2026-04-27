@@ -1,7 +1,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { jest } from '@jest/globals'
 import '@testing-library/jest-dom'
-import Home from './page'
+// `src/app/page.tsx` is an async server component that redirects authed users
+// to /dashboard. The marketing UI lives in `<LandingPage />`, which is what
+// these client-side tests exercise.
+import { LandingPage as Home } from '@/components/landing-page'
 
 // Mock Next.js navigation
 jest.mock('next/navigation', () => ({
@@ -30,10 +33,7 @@ jest.mock('next/link', () => ({
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} alt={props.alt} />
-  ),
+  default: (props: any) => <img {...props} alt={props.alt} />,
 }))
 
 // Mock dashboard preview components
@@ -122,7 +122,6 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
       const navigationLinks = [
         { text: 'Features', href: '/features' },
         { text: 'About', href: '/about' },
-        { text: 'Profile', href: '/profile' },
         { text: 'Sign In', href: '/login' },
       ]
       
@@ -636,7 +635,6 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
       const navigationLinks = [
         '/features',
         '/about',
-        '/profile',
         '/login',
         '/signup'
       ]
