@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import PhotoUpload from '@/components/calorie-tracker/PhotoUpload'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { BarChart3, CheckCircle } from 'lucide-react'
 
 interface CalorieTrackerPageProps {
   searchParams: Promise<{ success?: string }>
@@ -45,11 +47,17 @@ export default async function CalorieTrackerPage({ searchParams }: CalorieTracke
           <CardHeader>
             <CardTitle>Calorie Tracker</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-gray-600">
-              Take a photo of your meal and let AI analyze the nutritional content, 
+              Take a photo of your meal and let AI analyze the nutritional content,
               or enter the information manually.
             </p>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/calorie-tracker/dashboard">
+                <BarChart3 className="h-4 w-4" />
+                View calorie dashboard
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 
