@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Camera, FileImage } from 'lucide-react'
 import CameraCapture from './CameraCapture'
+import MobileCameraCapture from './MobileCameraCapture'
 import ImagePreview from './ImagePreview'
 import NutritionEntryForm from './NutritionEntryForm'
+import { useIsMobile } from '@/hooks/use-is-mobile'
 import { SupabaseStorageClient } from '@/lib/supabase-storage-client'
 import { ImageProcessor } from '@/lib/image-processing'
 import { FileValidator } from '@/utils/file-validation'
@@ -47,6 +49,7 @@ export default function PhotoUpload({ className }: PhotoUploadProps) {
   const storageClient = new SupabaseStorageClient()
   const imageProcessor = new ImageProcessor()
   const supabase = createClient()
+  const isMobile = useIsMobile()
 
   // Get user ID on component mount
   useEffect(() => {
@@ -172,8 +175,9 @@ export default function PhotoUpload({ className }: PhotoUploadProps) {
 
   // Render different views based on current state
   if (currentView === 'camera') {
+    const CameraComponent = isMobile ? MobileCameraCapture : CameraCapture
     return (
-      <CameraCapture
+      <CameraComponent
         onCapture={handleCameraCapture}
         onCancel={() => setCurrentView('initial')}
         className={className}
