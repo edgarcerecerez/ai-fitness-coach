@@ -87,11 +87,11 @@ self.addEventListener('fetch', (event) => {
             }
             return response
           })
-          .catch(() => cached)
+          .catch(() => cached ?? Response.error())
         // Keep the SW alive until the background cache update finishes,
         // even when we serve the cached response immediately.
         event.waitUntil(networkPromise)
-        return cached || networkPromise
+        return cached ?? networkPromise
       })()
     )
   }
@@ -118,18 +118,25 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const targetUrl =
+  const rawTargetUrl =
     (event.notification.data && event.notification.data.url) || '/'
 
   event.waitUntil(
     (async () => {
-      // Resolve absolute URL to compare safely against `client.url`.
-      let normalizedTarget
+      // Sanitize the URL to prevent open-redirect: only allow same-origin
+      // navigations; anything else falls back to '/'.
+      let parsed
       try {
-        normalizedTarget = new URL(targetUrl, self.location.origin).href
+        parsed = new URL(rawTargetUrl, self.location.origin)
       } catch {
-        normalizedTarget = targetUrl
+        parsed = new URL('/', self.location.origin)
       }
+      if (parsed.origin !== self.location.origin) {
+        parsed = new URL('/', self.location.origin)
+      }
+      const safeRelativeUrl =
+        parsed.pathname + parsed.search + parsed.hash
+      const safeAbsoluteUrl = parsed.href
 
       const clientList = await self.clients.matchAll({
         type: 'window',
@@ -139,13 +146,13 @@ self.addEventListener('notificationclick', (event) => {
       // Prefer focusing an existing window already on the target URL
       // rather than blindly navigating it away from the user's context.
       for (const client of clientList) {
-        if (client.url === normalizedTarget && 'focus' in client) {
+        if (client.url === safeAbsoluteUrl && 'focus' in client) {
           return client.focus()
         }
       }
 
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl)
+        return self.clients.openWindow(safeRelativeUrl)
       }
       return undefined
     })()

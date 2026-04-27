@@ -76,7 +76,12 @@ export default function InstallPrompt() {
     if (!deferredPrompt) return
     await deferredPrompt.prompt()
     try {
-      await deferredPrompt.userChoice
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'dismissed') {
+        // Persist the 7-day dismissal so we don't re-prompt immediately.
+        dismiss()
+        return
+      }
     } finally {
       setDeferredPrompt(null)
       setVisible(false)
