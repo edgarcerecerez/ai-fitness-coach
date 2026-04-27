@@ -22,31 +22,48 @@ describe('nav-links', () => {
   })
 
   describe('isActiveLink', () => {
+    const ALL_HREFS = NAV_LINKS.map((l) => l.href)
+
     it('returns false when pathname is null', () => {
-      expect(isActiveLink(null, '/dashboard')).toBe(false)
+      expect(isActiveLink(null, '/dashboard', ALL_HREFS)).toBe(false)
     })
 
     it('matches exact paths', () => {
-      expect(isActiveLink('/profile', '/profile')).toBe(true)
+      expect(isActiveLink('/profile', '/profile', ALL_HREFS)).toBe(true)
     })
 
     it('matches nested paths under a non-dashboard link', () => {
-      expect(isActiveLink('/profile/edit', '/profile')).toBe(true)
-      expect(isActiveLink('/calorie-tracker/dashboard', '/calorie-tracker')).toBe(true)
+      expect(isActiveLink('/profile/edit', '/profile', ALL_HREFS)).toBe(true)
+    })
+
+    it('does not let an ancestor nav link activate when the current pathname has its own nav entry', () => {
+      // `/calorie-tracker/dashboard` is itself in the nav, so `/calorie-tracker`
+      // must NOT also light up.
+      expect(
+        isActiveLink('/calorie-tracker/dashboard', '/calorie-tracker', ALL_HREFS)
+      ).toBe(false)
+      expect(
+        isActiveLink('/calorie-tracker/dashboard', '/calorie-tracker/dashboard', ALL_HREFS)
+      ).toBe(true)
     })
 
     it('does not let dashboard link match every route', () => {
-      expect(isActiveLink('/profile', '/dashboard')).toBe(false)
-      expect(isActiveLink('/dashboard', '/dashboard')).toBe(true)
+      expect(isActiveLink('/profile', '/dashboard', ALL_HREFS)).toBe(false)
+      expect(isActiveLink('/dashboard', '/dashboard', ALL_HREFS)).toBe(true)
     })
 
     it('does not match unrelated paths', () => {
-      expect(isActiveLink('/analytics', '/profile')).toBe(false)
+      expect(isActiveLink('/analytics', '/profile', ALL_HREFS)).toBe(false)
     })
 
     it('does not match similarly-named prefixes that are not nested', () => {
       // `/calorie-tracker-x` should NOT activate `/calorie-tracker`
-      expect(isActiveLink('/calorie-tracker-x', '/calorie-tracker')).toBe(false)
+      expect(isActiveLink('/calorie-tracker-x', '/calorie-tracker', ALL_HREFS)).toBe(false)
+    })
+
+    it('defaults navHrefs to an empty list when omitted', () => {
+      // Omitting navHrefs preserves prefix-match behavior.
+      expect(isActiveLink('/profile/edit', '/profile')).toBe(true)
     })
   })
 

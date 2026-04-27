@@ -11,8 +11,17 @@ import type { WeightUnit } from "@/lib/weight-conversion"
 
 export const dynamic = "force-dynamic"
 
-const SEVEN_DAYS_AGO_ISO = () =>
-  new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString()
+/**
+ * Returns the ISO timestamp for the start (UTC midnight) of the day 6 days
+ * before today, so a `>=` filter against this value covers the full last
+ * 7 calendar days inclusive of today.
+ */
+const sevenDayWindowStartIso = (): string => {
+  const start = new Date()
+  start.setUTCHours(0, 0, 0, 0)
+  start.setUTCDate(start.getUTCDate() - 6)
+  return start.toISOString()
+}
 
 /**
  * Unified protected dashboard. Server-component fetches the most recent week
@@ -30,7 +39,7 @@ export default async function DashboardPage() {
     redirect("/login")
   }
 
-  const since = SEVEN_DAYS_AGO_ISO()
+  const since = sevenDayWindowStartIso()
 
   const [weightRes, nutritionRes, moodRes, profileRes] = await Promise.all([
     supabase

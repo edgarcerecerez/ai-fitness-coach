@@ -13,7 +13,12 @@ import {
 export interface SeriesPoint {
   /** ISO date (YYYY-MM-DD) for the bucket. */
   date: string
-  value: number
+  /**
+   * Numeric value for the bucket, or `null` when the day has no data and the
+   * caller did not supply a fill value. Sparkline renderers should use
+   * `connectNulls` and skip drawing dots over these gaps.
+   */
+  value: number | null
 }
 
 export interface WeightLogRow {
@@ -77,7 +82,7 @@ export function buildDailySeries(
     const bucket = buckets.get(key)
     series.push({
       date: key,
-      value: bucket ? bucket.value : (fill ?? 0),
+      value: bucket?.value ?? fill ?? null,
     })
   }
   return series

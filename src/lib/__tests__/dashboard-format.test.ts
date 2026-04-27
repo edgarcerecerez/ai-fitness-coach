@@ -73,7 +73,7 @@ describe('formatLatestWeight', () => {
 })
 
 describe('formatTodayCalories', () => {
-  it('sums only today’s entries', () => {
+  it("sums only today's entries", () => {
     const result = formatTodayCalories([
       { total_calories: 500, recorded_at: '2026-04-27T08:00:00Z' },
       { total_calories: 700, recorded_at: '2026-04-27T18:00:00Z' },

@@ -28,11 +28,14 @@ export default function AppNav({ email }: AppNavProps) {
   const router = useRouter()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState<string | null>(null)
   const links = getNavLinks()
+  const navHrefs = links.map((l) => l.href)
   const initials = getEmailInitials(email)
 
   const handleSignOut = async () => {
     setSigningOut(true)
+    setSignOutError(null)
     try {
       const supabase = createClient()
       await supabase.auth.signOut()
@@ -40,6 +43,7 @@ export default function AppNav({ email }: AppNavProps) {
       router.refresh()
     } catch (error) {
       logError(error, "Error signing out")
+      setSignOutError("Sign out failed. Please try again.")
     } finally {
       setSigningOut(false)
       setDrawerOpen(false)
@@ -67,7 +71,7 @@ export default function AppNav({ email }: AppNavProps) {
           className="hidden items-center gap-1 md:flex"
         >
           {links.map((link) => {
-            const active = isActiveLink(pathname, link.href)
+            const active = isActiveLink(pathname, link.href, navHrefs)
             return (
               <Link
                 key={link.href}
@@ -101,15 +105,22 @@ export default function AppNav({ email }: AppNavProps) {
               </span>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSignOut}
-            disabled={signingOut}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign out
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              disabled={signingOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </Button>
+            {signOutError && (
+              <p role="alert" className="text-xs text-red-600">
+                {signOutError}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Mobile menu trigger */}
@@ -161,7 +172,7 @@ export default function AppNav({ email }: AppNavProps) {
             </div>
             <nav aria-label="Main" className="flex-1 overflow-y-auto px-2 py-2">
               {links.map((link) => {
-                const active = isActiveLink(pathname, link.href)
+                const active = isActiveLink(pathname, link.href, navHrefs)
                 return (
                   <Link
                     key={link.href}
@@ -190,6 +201,11 @@ export default function AppNav({ email }: AppNavProps) {
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </Button>
+              {signOutError && (
+                <p role="alert" className="mt-2 text-xs text-red-600">
+                  {signOutError}
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -33,14 +33,26 @@ export function getNavLinks(): readonly NavLink[] {
  * pathname is nested under it (e.g. `/profile/edit` is active for `/profile`).
  * The root dashboard link only activates on an exact match so it doesn't
  * highlight for every nested route.
+ *
+ * `navHrefs` (the list of all nav link hrefs) is consulted so that visiting a
+ * pathname which is itself a nav link does not also light up an ancestor
+ * link. For example, on `/calorie-tracker/dashboard` the `/calorie-tracker`
+ * link should not appear active because `/calorie-tracker/dashboard` has its
+ * own dedicated nav entry.
  */
-export function isActiveLink(pathname: string | null, href: string): boolean {
+export function isActiveLink(
+  pathname: string | null,
+  href: string,
+  navHrefs: readonly string[] = []
+): boolean {
   if (!pathname) return false
   if (pathname === href) return true
   if (href === "/dashboard") return false
-  // Avoid `/calorie-tracker` swallowing `/calorie-tracker/dashboard` — the
-  // longer link still wins because exact match is checked first above.
-  return pathname.startsWith(`${href}/`)
+  if (!pathname.startsWith(`${href}/`)) return false
+  // If the current pathname is itself a nav entry, only that exact entry
+  // should be considered active — don't also activate ancestor prefixes.
+  if (navHrefs.includes(pathname)) return false
+  return true
 }
 
 /**

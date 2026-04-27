@@ -33,10 +33,7 @@ jest.mock('next/link', () => ({
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => (
-     
-    <img {...props} alt={props.alt} />
-  ),
+  default: (props: any) => <img {...props} alt={props.alt} />,
 }))
 
 // Mock dashboard preview components
@@ -125,7 +122,6 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
       const navigationLinks = [
         { text: 'Features', href: '/features' },
         { text: 'About', href: '/about' },
-        { text: 'Profile', href: '/profile' },
         { text: 'Sign In', href: '/login' },
       ]
       
@@ -639,7 +635,6 @@ describe('Home Page - AI Fitness Coach Landing Page', () => {
       const navigationLinks = [
         '/features',
         '/about',
-        '/profile',
         '/login',
         '/signup'
       ]

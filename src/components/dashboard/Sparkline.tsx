@@ -31,12 +31,19 @@ export default function Sparkline({
     )
   }
 
+  // Build a valid SVG id from the label (collapse whitespace then strip any
+  // remaining non id-safe characters). Using the raw label can produce ids
+  // with spaces/punctuation, which break `url(#...)` references.
+  const gradientId = `sparkline-${ariaLabel
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]/g, "")}`
+
   return (
     <div role="img" aria-label={ariaLabel} className="h-16 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={[...data]}>
           <defs>
-            <linearGradient id={`sparkline-${ariaLabel}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.4} />
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
@@ -47,8 +54,9 @@ export default function Sparkline({
             dataKey="value"
             stroke={color}
             strokeWidth={2}
-            fill={`url(#sparkline-${ariaLabel})`}
+            fill={`url(#${gradientId})`}
             isAnimationActive={false}
+            connectNulls
           />
         </AreaChart>
       </ResponsiveContainer>

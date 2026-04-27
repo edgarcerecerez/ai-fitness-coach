@@ -102,7 +102,7 @@ export default function HealthInsightsView({
       ctaLabel: "Manage profile",
       series: weight.series,
       sparklineColor: "#2563eb",
-      sparklineKey: "weight-7-day",
+      sparklineKey: "7-day weight trend",
     },
     {
       title: "Today's Calories",
@@ -115,7 +115,7 @@ export default function HealthInsightsView({
       ctaLabel: "Open calorie tracker",
       series: calories.series,
       sparklineColor: "#f97316",
-      sparklineKey: "calories-7-day",
+      sparklineKey: "7-day calorie trend",
     },
     {
       title: "Latest Mood",
@@ -128,7 +128,7 @@ export default function HealthInsightsView({
       ctaLabel: "Open analytics",
       series: mood.series,
       sparklineColor: "#9333ea",
-      sparklineKey: "mood-7-day",
+      sparklineKey: "7-day mood trend",
     },
   ]
 
