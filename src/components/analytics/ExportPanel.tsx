@@ -24,6 +24,10 @@ export function ExportPanel() {
 
   const handleDownload = async () => {
     setError(null)
+    if (start && end && start > end) {
+      setError("Start date must be on or before end date.")
+      return
+    }
     setLoading(true)
     try {
       const params = new URLSearchParams({ format })

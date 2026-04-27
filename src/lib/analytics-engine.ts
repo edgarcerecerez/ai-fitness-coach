@@ -81,13 +81,20 @@ export function buildDailyAggregates(
 ): DailyAggregate[] {
   const map = new Map<
     string,
-    { wSum: number; wCount: number; cSum: number; mSum: number; mCount: number }
+    {
+      wSum: number
+      wCount: number
+      cSum: number
+      cCount: number
+      mSum: number
+      mCount: number
+    }
   >()
 
   const ensure = (key: string) => {
     let entry = map.get(key)
     if (!entry) {
-      entry = { wSum: 0, wCount: 0, cSum: 0, mSum: 0, mCount: 0 }
+      entry = { wSum: 0, wCount: 0, cSum: 0, cCount: 0, mSum: 0, mCount: 0 }
       map.set(key, entry)
     }
     return entry
@@ -108,6 +115,7 @@ export function buildDailyAggregates(
     if (!key || val === null) continue
     const entry = ensure(key)
     entry.cSum += val
+    entry.cCount += 1
   }
 
   for (const m of moods) {
@@ -124,7 +132,9 @@ export function buildDailyAggregates(
     out.push({
       date,
       weight_kg: entry.wCount > 0 ? entry.wSum / entry.wCount : null,
-      calories: entry.cSum > 0 ? entry.cSum : null,
+      // Use entry count rather than `cSum > 0` so legitimate zero-calorie
+      // days (e.g. fasting) are preserved instead of being dropped.
+      calories: entry.cCount > 0 ? entry.cSum : null,
       mood_score: entry.mCount > 0 ? entry.mSum / entry.mCount : null,
     })
   }
@@ -272,5 +282,8 @@ export function filterByWindow(
   const cutoff = new Date(now)
   cutoff.setUTCDate(cutoff.getUTCDate() - (days - 1))
   const cutoffKey = cutoff.toISOString().slice(0, 10)
-  return aggregates.filter((a) => a.date >= cutoffKey)
+  // Exclude future-dated aggregates (e.g. clock skew or bad data) so the
+  // window never extends past today.
+  const nowKey = now.toISOString().slice(0, 10)
+  return aggregates.filter((a) => a.date >= cutoffKey && a.date <= nowKey)
 }

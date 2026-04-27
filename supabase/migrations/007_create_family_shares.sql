@@ -53,5 +53,9 @@ CREATE POLICY "Invitees can view accepted shares targeted at them"
         AND status = 'accepted'
     );
 
+-- TODO(phase-future): add an UPDATE policy for invitees so the acceptance flow
+-- can populate shared_with_user_id and flip status to 'accepted'. Intentionally
+-- omitted in Phase 5 because the acceptance UI does not exist yet.
+
 COMMENT ON TABLE public.family_shares IS 'Phase 5: family sharing invitations. Owner creates; invitee accepts in a future phase by populating shared_with_user_id and setting status=accepted.';
 COMMENT ON COLUMN public.family_shares.permissions IS 'Subset of {view_weight, view_nutrition, view_mood}. Extend as new data types are added.';

@@ -48,6 +48,10 @@ function buildSupabaseMock(options: {
           q.lte = { column, value }
           return builder
         })
+        // The Supabase query builder is thenable: `await` on it triggers the
+        // query. Implementing `then` here lets us await the chained calls
+        // (`from(...).select(...).order(...)`) without needing a terminal
+        // `.execute()` and without pulling in the real client.
         builder.then = (resolve: (v: unknown) => unknown) =>
           Promise.resolve(
             resolve({
@@ -98,6 +102,18 @@ describe('GET /api/analytics/export', () => {
     expect(res.status).toBe(400)
   })
 
+  it('rejects malformed end date', async () => {
+    const mock = buildSupabaseMock({})
+    createClient.mockResolvedValue(mock.client)
+
+    const res = await GET(
+      new NextRequest('http://localhost/api/analytics/export?end=31-01-2026')
+    )
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toContain('end date')
+  })
+
   it('returns JSON payload by default with the correct headers and data', async () => {
     const mock = buildSupabaseMock({
       data: {
@@ -142,7 +158,7 @@ describe('GET /api/analytics/export', () => {
     }
   })
 
-  it('returns CSV when format=csv', async () => {
+  it('returns a ZIP archive of per-table CSVs when format=csv', async () => {
     const mock = buildSupabaseMock({
       data: {
         weight_logs: [
@@ -156,11 +172,48 @@ describe('GET /api/analytics/export', () => {
       new NextRequest('http://localhost/api/analytics/export?format=csv')
     )
     expect(res.status).toBe(200)
-    expect(res.headers.get('content-type')).toContain('text/csv')
-    const text = await res.text()
-    expect(text).toContain('## weight_logs')
-    expect(text).toContain('"w1"')
-    expect(text).toContain('"80"')
+    expect(res.headers.get('content-type')).toContain('application/zip')
+    expect(res.headers.get('content-disposition')).toMatch(
+      /^attachment; filename="health-export-.*\.zip"$/
+    )
+
+    const JSZip = require('jszip')
+    const buffer = Buffer.from(await res.arrayBuffer())
+    const zip = await JSZip.loadAsync(buffer)
+    const filenames = Object.keys(zip.files)
+    expect(filenames).toEqual(
+      expect.arrayContaining([
+        'weight_logs.csv',
+        'nutrition_logs.csv',
+        'mood_logs.csv',
+      ])
+    )
+    const weightCsv = await zip.file('weight_logs.csv').async('string')
+    expect(weightCsv).toContain('"w1"')
+    expect(weightCsv).toContain('"80"')
+  })
+
+  it('returns a PDF when format=pdf', async () => {
+    const mock = buildSupabaseMock({
+      data: {
+        weight_logs: [
+          { id: 'w1', recorded_at: '2026-01-01T00:00:00Z', weight_kg: 80 },
+        ],
+      },
+    })
+    createClient.mockResolvedValue(mock.client)
+
+    const res = await GET(
+      new NextRequest('http://localhost/api/analytics/export?format=pdf')
+    )
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('application/pdf')
+    expect(res.headers.get('content-disposition')).toMatch(
+      /^attachment; filename="health-export-.*\.pdf"$/
+    )
+    const buffer = Buffer.from(await res.arrayBuffer())
+    // PDFs always start with the "%PDF-" magic header.
+    expect(buffer.slice(0, 5).toString('ascii')).toBe('%PDF-')
   })
 
   it('returns 500 if a query errors', async () => {

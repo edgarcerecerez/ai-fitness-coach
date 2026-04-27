@@ -15,7 +15,7 @@ const config: Config = {
   // name).
   roots: ['<rootDir>/src'],
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
-  testMatch: ['<rootDir>/src/**/*.test.(ts|tsx)'],
+  testMatch: ['<rootDir>/src/**/*.test.{ts,tsx}'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },

@@ -41,6 +41,13 @@ const STATUS_VARIANT: Record<
 const SHARE_COLUMNS =
   "id, shared_with_email, shared_with_user_id, permissions, status, created_at, accepted_at"
 
+// Standard "no spaces, an @, and a dot in the domain" check. Good enough for
+// the invite UI; the backend / Supabase auth still owns the canonical check.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Postgres unique_violation: duplicate row for (owner_id, shared_with_email).
+const PG_UNIQUE_VIOLATION = "23505"
+
 export function FamilySharing() {
   const supabase = useMemo(() => createClient(), [])
   const [shares, setShares] = useState<FamilyShare[]>([])
@@ -87,7 +94,7 @@ export function FamilySharing() {
     setError(null)
 
     const trimmed = email.trim().toLowerCase()
-    if (!trimmed || !trimmed.includes("@")) {
+    if (!trimmed || !EMAIL_RE.test(trimmed)) {
       setError("Please enter a valid email address.")
       return
     }
@@ -114,7 +121,12 @@ export function FamilySharing() {
     })
 
     if (insertError) {
-      setError(insertError.message)
+      if (insertError.code === PG_UNIQUE_VIOLATION) {
+        // Keep the email/permissions populated so the user can adjust and retry.
+        setError("An invite for this email already exists.")
+      } else {
+        setError(insertError.message)
+      }
     } else {
       setEmail("")
       setPermissions(DEFAULT_PERMISSIONS)
@@ -141,10 +153,17 @@ export function FamilySharing() {
       supabase.from("family_shares").update({ status: "revoked" }).eq("id", shareId)
     )
 
-  const handleDelete = (id: string) =>
-    mutateShare(id, (shareId) =>
+  const handleDelete = (share: FamilyShare) => {
+    const confirmed =
+      typeof window === "undefined" ||
+      window.confirm(
+        `Delete the invite for ${share.shared_with_email}? This cannot be undone.`
+      )
+    if (!confirmed) return
+    void mutateShare(share.id, (shareId) =>
       supabase.from("family_shares").delete().eq("id", shareId)
     )
+  }
 
   return (
     <Card>
@@ -237,7 +256,7 @@ export function FamilySharing() {
                       variant="ghost"
                       size="icon"
                       aria-label={`Delete invite for ${share.shared_with_email}`}
-                      onClick={() => handleDelete(share.id)}
+                      onClick={() => handleDelete(share)}
                     >
                       <Trash2 className="size-4" />
                     </Button>

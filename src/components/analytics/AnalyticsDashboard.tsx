@@ -197,11 +197,11 @@ export function AnalyticsDashboard() {
               trend={moodVsCalories.trend}
             />
           </div>
+
+          <ExportPanel />
+          <FamilySharing />
         </>
       )}
-
-      <ExportPanel />
-      <FamilySharing />
     </div>
   )
 }

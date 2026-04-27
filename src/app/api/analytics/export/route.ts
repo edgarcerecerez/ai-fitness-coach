@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { apiLogger } from '@/lib/logger'
-import { buildHealthExport, type ExportFormat } from './export-utils'
+import {
+  buildHealthExport,
+  type ExportFormat,
+  type MoodLog,
+  type NutritionLog,
+  type WeightLog,
+} from './export-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,9 +87,9 @@ export async function GET(request: NextRequest) {
       generated_at: new Date().toISOString(),
       user_id: user.id,
       range: { start: start || null, end: end || null },
-      weight_logs: (weightRes.data ?? []) as unknown as Record<string, unknown>[],
-      nutrition_logs: (nutritionRes.data ?? []) as unknown as Record<string, unknown>[],
-      mood_logs: (moodRes.data ?? []) as unknown as Record<string, unknown>[],
+      weight_logs: (weightRes.data ?? []) as unknown as WeightLog[],
+      nutrition_logs: (nutritionRes.data ?? []) as unknown as NutritionLog[],
+      mood_logs: (moodRes.data ?? []) as unknown as MoodLog[],
     }
 
     const { body, contentType, filename } = await buildHealthExport(payload, format)
