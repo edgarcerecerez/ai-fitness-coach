@@ -10,8 +10,11 @@ interface SubscribeBody {
 /**
  * Stores a Web Push subscription for the authenticated user.
  *
- * Idempotent: subscriptions are upserted on `endpoint`, so repeated calls
- * from the same browser refresh the row instead of creating duplicates.
+ * Idempotent: subscriptions are upserted on `(user_id, endpoint)`, so
+ * repeated calls from the same browser refresh the row instead of creating
+ * duplicates. Using the composite key (rather than `endpoint` alone) lets a
+ * shared browser/endpoint be re-registered under a different account without
+ * the upsert trying to UPDATE another user's row, which RLS would block.
  */
 export async function POST(request: Request) {
   let body: SubscribeBody
@@ -52,7 +55,7 @@ export async function POST(request: Request) {
         auth,
         user_agent: body.userAgent ?? null,
       },
-      { onConflict: 'endpoint' }
+      { onConflict: 'user_id,endpoint' }
     )
 
   if (error) {
