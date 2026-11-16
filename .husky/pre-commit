@@ -1,3 +1,16 @@
 #!/usr/bin/env sh
 
+# Work identity guard (owner rule 2026-11-16): these are personal projects,
+# so a commit must never carry the kasada.io work address.
+for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
+  if printf "%s\n" "$ident" | grep -qi "@kasada\.io"; then
+    echo "" >&2
+    echo "BLOCKED by pre-commit hook: this commit uses the kasada.io work email." >&2
+    echo "Personal projects commit as edgar@hey.com. Fix with:" >&2
+    echo "  git config user.email edgar@hey.com" >&2
+    echo "" >&2
+    exit 1
+  fi
+done
+
 npx lint-staged
