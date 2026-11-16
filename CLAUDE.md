@@ -124,10 +124,12 @@ These are Edgar's personal projects. His work identity, any `@kasada.io`
 address and the Kasada accounts on Vercel, Gmail, PostHog and elsewhere, is
 never used here.
 
-- Commits are authored as `edgar@hey.com` (Edgar) or the agent's own bot
-  identity, never a `kasada.io` address. The Husky pre-commit hook rejects it.
+- Commits are authored with a personal address (`edgar@hey.com` preferred)
+  or the agent's own bot identity, never a `kasada.io` address. The Husky pre-commit hook rejects it
+  once `npm install` has run. It checks at commit time only, so never use
+  `--no-verify` to get past it.
 - Vercel credits a deploy to the Vercel account that the commit's **GitHub
-  user** is linked to, not to the email in the commit. A "Blocked deployment
+  user** is linked to, not to the email in the commit, so the hook alone can't prevent this. A "Blocked deployment
   … access has been requested on your behalf" email means that link points
   at the wrong Vercel account (in Nov 2026 it pointed at the Kasada one).
   **Never approve that request**, and never invite or add a member or seat

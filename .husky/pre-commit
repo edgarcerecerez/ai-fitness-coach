@@ -8,6 +8,7 @@ for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
     echo "BLOCKED by pre-commit hook: this commit uses the kasada.io work email." >&2
     echo "Personal projects commit as edgar@hey.com. Fix with:" >&2
     echo "  git config user.email edgar@hey.com" >&2
+    echo "  (an amended commit keeps its author: add --reset-author)" >&2
     echo "" >&2
     exit 1
   fi
