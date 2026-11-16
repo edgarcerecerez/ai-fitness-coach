@@ -117,3 +117,23 @@ The application is designed to integrate with AI services for:
 - Tailwind CSS for styling
 - Next.js App Router for file-based routing
 - Supabase for backend services (database, auth, storage)
+
+## Accounts and identity (owner rule 2026-11-16)
+
+These are Edgar's personal projects. His work identity, any `@kasada.io`
+address and the Kasada accounts on Vercel, Gmail, PostHog and elsewhere, is
+never used here.
+
+- Commits are authored with a personal address (`edgar@hey.com` preferred)
+  or the agent's own bot identity, never a `kasada.io` address. The Husky pre-commit hook rejects it
+  once `npm install` has run. It checks at commit time only, so never use
+  `--no-verify` to get past it.
+- Vercel credits a deploy to the Vercel account that the commit's **GitHub
+  user** is linked to, not to the email in the commit, so the hook alone can't prevent this. A "Blocked deployment
+  … access has been requested on your behalf" email means that link points
+  at the wrong Vercel account (in Nov 2026 it pointed at the Kasada one).
+  **Never approve that request**, and never invite or add a member or seat
+  to any team (Vercel, Supabase, Fly, PostHog, GitHub). A seat costs money,
+  so it waits for Edgar. Report the blocked deploy to him instead.
+- Don't use the Kasada mailbox or any other work connector for work in
+  these projects.
